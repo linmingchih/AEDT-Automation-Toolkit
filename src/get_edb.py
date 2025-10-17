@@ -1,4 +1,5 @@
 import sys
+import os
 from pyaedt import Edb
 import json
 from collections import defaultdict
@@ -6,17 +7,13 @@ from collections import defaultdict
 design_path = sys.argv[1]
 edb_version = sys.argv[2]
 xml_path = sys.argv[3]
+project_file = sys.argv[4]
 
 print(sys.argv)
 # edb_path = '../data2/Galileo_G87173_204.brd'
 # edb_version = '2024.1'
 # xml_path = ''
 
-if '.aedb' in design_path:
-    json_path = design_path.replace('.aedb', '.json')
-if '.brd' in design_path:
-    json_path = design_path.replace('.brd', '.json')
-    
 edb = Edb(design_path, edbversion=edb_version)
 
 if xml_path:
@@ -37,8 +34,16 @@ for differential_pair_name, differential_pair in edb.differential_pairs.items.it
     neg = differential_pair.negative_net.name
     info['diff'][differential_pair_name] = (pos, neg)
     
-with open(json_path, 'w') as f:
-    json.dump(info, f, indent=3)
+project_data = {}
+if os.path.exists(project_file):
+    with open(project_file, "r") as f:
+        project_data = json.load(f)
+
+project_data["pcb_data"] = info
+
+os.makedirs(os.path.dirname(project_file), exist_ok=True)
+with open(project_file, 'w') as f:
+    json.dump(project_data, f, indent=3)
 
 
 edb.close_edb()

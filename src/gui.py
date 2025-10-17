@@ -66,7 +66,6 @@ class AEDBCCTCalculator(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         self.pcb_data = None
         self.all_components = []
-        self.config_file = os.path.join(os.path.dirname(__file__), "..", "data", "config.json")
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)

@@ -3,13 +3,13 @@ import sys
 import json
 from pathlib import Path
 
-#json_path = '../data2/simulation.json'
-json_path = sys.argv[1]
+#project_file = '../data2/project.json'
+project_file = sys.argv[1]
 
-with open(json_path) as f:
+with open(project_file) as f:
     info = json.load(f)
     
-edb_path = info['aedb_path'].replace('.aedb', '_applied.aedb')
+edb_path = info['aedb_path']
 from pyaedt import Hfss3dLayout
 
 hfss = Hfss3dLayout(edb_path, version=info['solver_version'], non_graphical=True)
@@ -17,7 +17,7 @@ hfss = Hfss3dLayout(edb_path, version=info['solver_version'], non_graphical=True
 hfss.export_touchstone_on_completion()
 hfss.analyze()
 
-root = Path(info['aedb_path'].replace('.aedb', '_applied.aedtexport'))
+root = Path(info['aedb_path'].replace('.aedb', '.aedtexport'))
 pattern = re.compile(r"\.s(\d{1,3})p$", re.IGNORECASE)
 
 # 遞迴搜尋所有 sNp 檔案
@@ -36,12 +36,9 @@ if matched_files:
     print("Latest Touchstone file:", touchstone_path)
 
     # 儲存結果 JSON
-    output_dir = Path(json_path).parent
-    result_json_path = output_dir / "result.json"
-    with open(result_json_path, "w") as f:
-        json.dump({"touchstone_path": touchstone_path}, f, indent=2)
+    info["touchstone_path"] = touchstone_path
+    with open(project_file, "w") as f:
+        json.dump(info, f, indent=2)
 else:
     print("Error: No Touchstone file found.")
     sys.exit(1)
-
-

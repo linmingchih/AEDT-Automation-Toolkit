@@ -2,16 +2,15 @@ import sys
 from pyaedt import Edb
 import json
 
-json_path = sys.argv[1]
+project_file = sys.argv[1]
 edb_version = sys.argv[2]
-# json_path = '../data/ports.json'
+# project_file = '../data/project.json'
 
-with open(json_path) as f:
+with open(project_file) as f:
     info = json.load(f)
 
 
 edb = Edb(info['aedb_path'], edbversion=edb_version)
-new_edb_path = info['aedb_path'].replace('.aedb', '_applied.aedb')
 
 
 ref_terminals = {}
@@ -31,5 +30,5 @@ for port in info['ports']:
     terminal.SetReferenceTerminal(ref_terminals[comp_name])
     terminal.SetName(port_name)
 
-edb.save_edb_as(new_edb_path)
+edb.save()
 edb.close_edb()

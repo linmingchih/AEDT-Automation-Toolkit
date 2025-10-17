@@ -11,6 +11,7 @@ from gui import AEDBCCTCalculator
 class MainController(AEDBCCTCalculator):
     def __init__(self):
         super().__init__()
+        self.project_file = None
         self.load_config()
         self.connect_signals()
 
@@ -38,25 +39,19 @@ class MainController(AEDBCCTCalculator):
         super().closeEvent(event)
 
     def load_config(self):
-        try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, "r") as f:
-                    config = json.load(f)
-                    self.edb_version_input.setText(config.get("edb_version", "2024.1"))
-            else:
-                self.edb_version_input.setText("2024.1")
-        except (IOError, json.JSONDecodeError) as e:
-            self.log(f"Could not load config file: {e}", "orange")
+        if self.project_file and os.path.exists(self.project_file):
+            with open(self.project_file, "r") as f:
+                config = json.load(f)
+                self.edb_version_input.setText(config.get("edb_version", "2024.1"))
+        else:
             self.edb_version_input.setText("2024.1")
 
     def save_config(self):
-        try:
+        if self.project_file:
+            os.makedirs(os.path.dirname(self.project_file), exist_ok=True)
             config = {"edb_version": self.edb_version_input.text()}
-            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
-            with open(self.config_file, "w") as f:
+            with open(self.project_file, "w") as f:
                 json.dump(config, f, indent=2)
-        except IOError as e:
-            self.log(f"Could not save config file: {e}", "red")
 
     def log(self, message, color=None):
         if color: self.log_window.setTextColor(QColor(color))
@@ -92,13 +87,19 @@ class MainController(AEDBCCTCalculator):
         if not os.path.isdir(aedb_path):
             self.log("Invalid AEDB path.", "red")
             return
-        output_path = os.path.join(os.path.dirname(aedb_path), "ports.json")
-        data = {
+        
+        project_data = {}
+        if os.path.exists(self.project_file):
+            with open(self.project_file, "r") as f:
+                project_data = json.load(f)
+
+        project_data.update({
             "aedb_path": aedb_path, "reference_net": self.ref_net_combo.currentText(),
             "controller_components": [item.text().split(" ")[0] for item in self.controller_components_list.selectedItems()],
             "dram_components": [item.text().split(" ")[0] for item in self.dram_components_list.selectedItems()],
             "ports": [],
-        }
+        })
+        
         sequence = 1
         diff_pairs_info = self.pcb_data.get("diff", {})
         net_to_diff_pair = {p_net: (pair_name, "positive") for pair_name, (p_net, n_net) in diff_pairs_info.items()}
@@ -110,12 +111,12 @@ class MainController(AEDBCCTCalculator):
             if item.checkState() == Qt.Checked:
                 net_name = item.text()
                 signal_nets.append(net_name)
-                for comp in data["controller_components"]:
+                for comp in project_data["controller_components"]:
                     if any(pin[1] == net_name for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{net_name}", "component": comp, "component_role": "controller", "net": net_name, "net_type": "single", "pair": None, "polarity": None, "reference_net": data["reference_net"]}); sequence += 1
-                for comp in data["dram_components"]:
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{net_name}", "component": comp, "component_role": "controller", "net": net_name, "net_type": "single", "pair": None, "polarity": None, "reference_net": project_data["reference_net"]}); sequence += 1
+                for comp in project_data["dram_components"]:
                     if any(pin[1] == net_name for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{net_name}", "component": comp, "component_role": "dram", "net": net_name, "net_type": "single", "pair": None, "polarity": None, "reference_net": data["reference_net"]}); sequence += 1
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{net_name}", "component": comp, "component_role": "dram", "net": net_name, "net_type": "single", "pair": None, "polarity": None, "reference_net": project_data["reference_net"]}); sequence += 1
         
         for i in range(self.differential_pairs_list.count()):
             item = self.differential_pairs_list.item(i)
@@ -123,26 +124,26 @@ class MainController(AEDBCCTCalculator):
                 pair_name = item.text()
                 p_net, n_net = diff_pairs_info[pair_name]
                 signal_nets.extend([p_net, n_net])
-                for comp in data["controller_components"]:
+                for comp in project_data["controller_components"]:
                     if any(pin[1] == p_net for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{p_net}", "component": comp, "component_role": "controller", "net": p_net, "net_type": "differential", "pair": pair_name, "polarity": "positive", "reference_net": data["reference_net"]}); sequence += 1
-                for comp in data["dram_components"]:
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{p_net}", "component": comp, "component_role": "controller", "net": p_net, "net_type": "differential", "pair": pair_name, "polarity": "positive", "reference_net": project_data["reference_net"]}); sequence += 1
+                for comp in project_data["dram_components"]:
                     if any(pin[1] == p_net for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{p_net}", "component": comp, "component_role": "dram", "net": p_net, "net_type": "differential", "pair": pair_name, "polarity": "positive", "reference_net": data["reference_net"]}); sequence += 1
-                for comp in data["controller_components"]:
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{p_net}", "component": comp, "component_role": "dram", "net": p_net, "net_type": "differential", "pair": pair_name, "polarity": "positive", "reference_net": project_data["reference_net"]}); sequence += 1
+                for comp in project_data["controller_components"]:
                     if any(pin[1] == n_net for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{n_net}", "component": comp, "component_role": "controller", "net": n_net, "net_type": "differential", "pair": pair_name, "polarity": "negative", "reference_net": data["reference_net"]}); sequence += 1
-                for comp in data["dram_components"]:
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{n_net}", "component": comp, "component_role": "controller", "net": n_net, "net_type": "differential", "pair": pair_name, "polarity": "negative", "reference_net": project_data["reference_net"]}); sequence += 1
+                for comp in project_data["dram_components"]:
                     if any(pin[1] == n_net for pin in self.pcb_data["component"].get(comp, [])):
-                        data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{n_net}", "component": comp, "component_role": "dram", "net": n_net, "net_type": "differential", "pair": pair_name, "polarity": "negative", "reference_net": data["reference_net"]}); sequence += 1
+                        project_data["ports"].append({"sequence": sequence, "name": f"{sequence}_{comp}_{n_net}", "component": comp, "component_role": "dram", "net": n_net, "net_type": "differential", "pair": pair_name, "polarity": "negative", "reference_net": project_data["reference_net"]}); sequence += 1
         
         self.signal_nets_label.setText(", ".join(sorted(signal_nets)))
-        self.reference_net_label.setText(data["reference_net"])
+        self.reference_net_label.setText(project_data["reference_net"])
         self.current_aedb_path = aedb_path
 
         try:
-            with open(output_path, "w") as f: json.dump(data, f, indent=2)
-            self.log(f"Successfully saved to {output_path}. Now applying to EDB...")
+            with open(self.project_file, "w") as f: json.dump(project_data, f, indent=2)
+            self.log(f"Successfully saved to {self.project_file}. Now applying to EDB...")
             
             self.apply_button.setEnabled(False)
             self.apply_button.setText("Running...")
@@ -151,7 +152,7 @@ class MainController(AEDBCCTCalculator):
             script_path = os.path.join(os.path.dirname(__file__), "set_edb.py")
             python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
             edb_version = self.edb_version_input.text()
-            command = [python_executable, script_path, output_path, edb_version]
+            command = [python_executable, script_path, self.project_file, edb_version]
             
             self.set_edb_process = QProcess()
             self.set_edb_process.readyReadStandardOutput.connect(self.handle_set_edb_stdout)
@@ -194,6 +195,9 @@ class MainController(AEDBCCTCalculator):
 
         if path:
             self.layout_path_label.setText(path)
+            project_dir = os.path.dirname(path) if path.endswith(".aedb") else os.path.splitext(path)[0]
+            self.project_file = os.path.join(project_dir, "project.json")
+            self.load_config()
 
     def browse_stackup(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select Stackup File", "", "XML files (*.xml)")
@@ -219,7 +223,7 @@ class MainController(AEDBCCTCalculator):
         if not (stackup_path and os.path.exists(stackup_path)):
             stackup_path = ""
 
-        command = [python_executable, script_path, layout_path, edb_version, stackup_path]
+        command = [python_executable, script_path, layout_path, edb_version, stackup_path, self.project_file]
         self.log(f"Running command: {' '.join(command)}")
 
         self.get_edb_process = QProcess()
@@ -245,33 +249,40 @@ class MainController(AEDBCCTCalculator):
 
         if exit_code == 0:
             layout_path = self.current_layout_path
-            if layout_path.endswith('.aedb'):
-                json_output_path = layout_path.replace('.aedb', '.json')
-            else:
-                json_output_path = os.path.splitext(layout_path)[0] + '.json'
-
-            self.log(f"Successfully generated {os.path.basename(json_output_path)}")
-            
             if layout_path.lower().endswith('.brd'):
                 new_aedb_path = os.path.splitext(layout_path)[0] + '.aedb'
                 self.layout_path_label.setText(new_aedb_path)
                 self.log(f"Design path has been updated to: {new_aedb_path}")
-
-            self.load_pcb_data(json_output_path)
+            
+            self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
+            
+            self.load_pcb_data()
         else:
             self.log(f"Get EDB process failed with exit code {exit_code}.", "red")
 
-    def load_pcb_data(self, json_path):
+    def load_pcb_data(self):
         try:
-            with open(json_path, "r") as f: self.pcb_data = json.load(f)
+            if not self.project_file or not os.path.exists(self.project_file):
+                self.log("Project file not found.", "red")
+                self.pcb_data = None
+                return
+
+            with open(self.project_file, "r") as f:
+                project_data = json.load(f)
+            
+            self.pcb_data = project_data.get("pcb_data")
+
+            if not self.pcb_data:
+                self.log("No pcb_data found in project file.", "orange")
+                return
+
             self.controller_components_list.clear()
             self.dram_components_list.clear()
             if "component" in self.pcb_data:
                 self.all_components = [(name, len(pins)) for name, pins in self.pcb_data["component"].items()]
                 self.all_components.sort(key=lambda x: x[1], reverse=True)
                 self.filter_components()
-        except FileNotFoundError: self.log("pcb.json not found.", "red"); self.pcb_data = None
-        except json.JSONDecodeError: self.log("Error decoding pcb.json.", "red"); self.pcb_data = None
+        except json.JSONDecodeError: self.log(f"Error decoding {os.path.basename(self.project_file)}.", "red"); self.pcb_data = None
         except Exception as e: self.log(f"Error loading data: {e}", "red"); self.pcb_data = None
 
     def update_nets(self):
@@ -333,8 +344,10 @@ class MainController(AEDBCCTCalculator):
             self.log("Please open an .aedb project first.", "red")
             return
 
-        output_dir = os.path.dirname(aedb_path)
-        self.simulation_config_path = os.path.join(output_dir, "simulation.json")
+        project_data = {}
+        if os.path.exists(self.project_file):
+            with open(self.project_file, "r") as f:
+                project_data = json.load(f)
 
         sweeps = []
         for row in range(self.sweeps_table.rowCount()):
@@ -344,9 +357,7 @@ class MainController(AEDBCCTCalculator):
             step = self.sweeps_table.item(row, 3).text()
             sweeps.append([sweep_type, start, stop, step])
 
-        settings = {
-            "aedb_path": aedb_path,
-            "edb_version": self.edb_version_input.text(),
+        project_data.update({
             "cutout": {
                 "enabled": self.enable_cutout_checkbox.isChecked(),
                 "expansion_size": self.expansion_size_input.text(),
@@ -356,12 +367,12 @@ class MainController(AEDBCCTCalculator):
             "solver": "SIwave",
             "solver_version": self.siwave_version_input.text(),
             "frequency_sweeps": sweeps,
-        }
+        })
 
         try:
-            with open(self.simulation_config_path, "w") as f:
-                json.dump(settings, f, indent=2)
-            self.log(f"Simulation settings saved to {self.simulation_config_path}")
+            with open(self.project_file, "w") as f:
+                json.dump(project_data, f, indent=2)
+            self.log(f"Simulation settings saved to {self.project_file}")
 
             self.log("Applying simulation settings to EDB...")
             self.apply_simulation_button.setEnabled(False)
@@ -370,7 +381,7 @@ class MainController(AEDBCCTCalculator):
 
             script_path = os.path.join(os.path.dirname(__file__), "set_sim.py")
             python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
-            command = [python_executable, script_path, self.simulation_config_path]
+            command = [python_executable, script_path, self.project_file]
             
             self.set_sim_process = QProcess()
             self.set_sim_process.readyReadStandardOutput.connect(self.handle_set_sim_stdout)
@@ -407,13 +418,54 @@ class MainController(AEDBCCTCalculator):
         self.log("Starting simulation...")
         script_path = os.path.join(os.path.dirname(__file__), "run_sim.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
-        command = [python_executable, script_path, self.simulation_config_path]
+        command = [python_executable, script_path, self.project_file]
 
         self.run_sim_process = QProcess()
         self.run_sim_process.readyReadStandardOutput.connect(self.handle_run_sim_stdout)
         self.run_sim_process.readyReadStandardError.connect(self.handle_run_sim_stderr)
         self.run_sim_process.finished.connect(self.run_sim_finished)
         self.run_sim_process.start(command[0], command[1:])
+
+    def handle_run_sim_stdout(self):
+        data = self.run_sim_process.readAllStandardOutput().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line)
+
+    def handle_run_sim_stderr(self):
+        data = self.run_sim_process.readAllStandardError().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line, color="red")
+
+    def run_sim_finished(self):
+        self.log("Simulation process finished.")
+        self.apply_simulation_button.setEnabled(True)
+        self.apply_simulation_button.setText("Apply Simulation")
+        self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
+        if self.run_sim_process.exitCode() == 0:
+            self.log("Successfully ran simulation.")
+            
+            if os.path.exists(self.project_file):
+                try:
+                    with open(self.project_file, "r") as f:
+                        result_data = json.load(f)
+                    touchstone_path = result_data.get("touchstone_path")
+
+                    if touchstone_path and os.path.exists(touchstone_path):
+                        self.touchstone_path_input.setText(touchstone_path)
+                        self.log(f"Updated Touchstone path to: {touchstone_path}")
+
+                        ports_json_path = self.project_file
+                        if os.path.exists(ports_json_path):
+                            self.port_metadata_path_input.setText(ports_json_path)
+                            self.log(f"Updated Port Metadata path to: {ports_json_path}")
+                        else:
+                            self.log(f"Could not find project.json at: {ports_json_path}", "orange")
+                    else:
+                        self.log("Touchstone path not found or invalid in project.json.", "orange")
+                except (IOError, json.JSONDecodeError) as e:
+                    self.log(f"Error reading project.json: {e}", "red")
+            else:
+                self.log(f"Could not find project.json.", "orange")
+        else:
+            self.log(f"Run simulation process failed with exit code {self.run_sim_process.exitCode()}.", "red")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

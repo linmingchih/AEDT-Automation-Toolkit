@@ -1,0 +1,58 @@
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 2:46:38 PM  Oct 17, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 56049.
+
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, siwave_ng 2025 R1 (Built: Nov 30 2024 15:51:52) (02:47:02 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_M_CLK0"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_PCIE0_RX0"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_PCIE0_TX0"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_REF1"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_REFCLK0"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RMII_S0_RD"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RMII_S0_TD"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RSVD1"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RSVD2"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RSVD3"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RSVD4"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_RSVD5"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_USBH0_D"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_USBH0_D_CH"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_USBH1_D"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_USBH2_D"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, ignoring differential net definition "DP_USBH2_D_CH"; both + and - net names are empty.  (02:47:03 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Simulation "sweep_CCK368" started on host AAPVHWVMVEUGTEC at Fri Oct 17 14:47:03 2025 (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, [Simulation Directory]: "C:/Users/mlin/AppData/Local/Temp/ens_temp_21000.pjt/" (02:47:04 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Dielectric layer "UNNAMED_000" has a thickness of 0 mm and will be ignored (02:47:04 PM  Oct 17, 2025)
+[warning] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Dielectric layer "UNNAMED_012" has a thickness of 0 mm and will be ignored (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, GND (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<0> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<1> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<2> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<3> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<4> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<5> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<6> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<7> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<8> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<9> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<10> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<11> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<12> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<13> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<14> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQ<15> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQS<0> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQS<1> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQS_N<0> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, M_DQS_N<1> (02:47:04 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, SYZ solver completed with return code 0 (02:47:13 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Simulation "sweep_CCK368" completed on host AAPVHWVMVEUGTEC at Fri Oct 17 14:47:13 2025 (02:47:13 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Saved "C:/Users/mlin/AppData/Local/Temp/ens_temp_21000.pjt/Galileo_G87173_204.siw" (02:47:13 PM  Oct 17, 2025)
+[info] Project:Galileo_G87173_204, Design:Galileo_G87173_204, Touchstone export: Writing to "D:/OneDrive - ANSYS, Inc/a-client-repositories/lmz-siwave-SI-2025-10-17/test/Galileo_G87173_204.aedtexport/Galileo_G87173_204/Siwave_SYZ_FPD0AV_ts_2025_10_17_下午_02_46_53/sweep_CCK368_DV3.s40p" (02:47:18 PM  Oct 17, 2025)
+Stopping Batch Run: 2:47:24 PM  Oct 17, 2025

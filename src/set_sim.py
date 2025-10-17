@@ -1,14 +1,14 @@
 import sys
 import json
 
-#json_path = '../data/simulation.json'
-json_path = sys.argv[1]
+#project_file = '../data/project.json'
+project_file = sys.argv[1]
 
-with open(json_path) as f:
+with open(project_file) as f:
     info = json.load(f)
 
 from pyedb import Edb, Siwave
-edb_path = info['aedb_path'].replace('.aedb', '_applied.aedb')
+edb_path = info['aedb_path']
 edb = Edb(edb_path, version=info['edb_version'])
 
 if info['cutout']['enabled']:
@@ -30,6 +30,3 @@ elif info['solver'] == 'HFSS':
 
 edb.save()
 edb.close_edb()
-
-    
-    
