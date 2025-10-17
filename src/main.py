@@ -195,7 +195,7 @@ class MainController(AEDBCCTCalculator):
 
         if path:
             self.layout_path_label.setText(path)
-            project_dir = os.path.dirname(path) if path.endswith(".aedb") else os.path.splitext(path)[0]
+            project_dir = os.path.dirname(path)
             self.project_file = os.path.join(project_dir, "project.json")
             self.load_config()
 
@@ -358,6 +358,7 @@ class MainController(AEDBCCTCalculator):
             sweeps.append([sweep_type, start, stop, step])
 
         project_data.update({
+            "edb_version": self.edb_version_input.text(),
             "cutout": {
                 "enabled": self.enable_cutout_checkbox.isChecked(),
                 "expansion_size": self.expansion_size_input.text(),
