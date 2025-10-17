@@ -62,7 +62,7 @@ class NetListWidget(QListWidget):
 class AEDBCCTCalculator(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AEDB CCT Calculator")
+        self.setWindowTitle("SI Simulation Toolkit")
         self.setGeometry(100, 100, 1200, 800)
         self.pcb_data = None
         self.all_components = []
