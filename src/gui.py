@@ -75,11 +75,9 @@ class AEDBCCTCalculator(QMainWindow):
         self.import_tab = QWidget()
         self.port_setup_tab = QWidget()
         self.simulation_tab = QWidget()
-        self.result_tab = QWidget()
         self.tabs.addTab(self.import_tab, "Import")
         self.tabs.addTab(self.port_setup_tab, "Port Setup")
         self.tabs.addTab(self.simulation_tab, "Simulation")
-        self.tabs.addTab(self.result_tab, "Result")
         main_layout.addWidget(self.tabs)
 
         log_group = QGroupBox("Information")
@@ -94,40 +92,9 @@ class AEDBCCTCalculator(QMainWindow):
         self.setup_import_tab()
         self.setup_port_setup_tab()
         self.setup_simulation_tab()
-        self.setup_result_tab()
         self.apply_styles()
 
-    def setup_result_tab(self):
-        result_layout = QVBoxLayout(self.result_tab)
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        self.result_table = QTableWidget()
-        result_layout.addWidget(self.result_table)
 
-    def load_result_csv(self, file_path=None):
-        if file_path is None:
-            # Default to a file in the 'result' subdirectory of the script's directory
-            base_dir = os.path.dirname(__file__)
-            file_path = os.path.join(base_dir, "result", "cct_result.csv")
-
-        if not os.path.exists(file_path):
-            self.log_window.append(f"Result file not found: {file_path}")
-            return
-
-        try:
-            with open(file_path, "r", newline="") as csvfile:
-                reader = csv.reader(csvfile)
-                headers = next(reader)
-                self.result_table.setColumnCount(len(headers))
-                self.result_table.setHorizontalHeaderLabels(headers)
-                self.result_table.setRowCount(0)
-                for row_data in reader:
-                    row = self.result_table.rowCount()
-                    self.result_table.insertRow(row)
-                    for i, data in enumerate(row_data):
-                        self.result_table.setItem(row, i, QTableWidgetItem(data))
-            self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        except Exception as e:
-            self.log_window.append(f"Error loading result CSV: {e}")
 
     def setup_import_tab(self):
         import_layout = QVBoxLayout(self.import_tab)
