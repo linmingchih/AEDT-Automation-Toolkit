@@ -311,4 +311,3 @@ class AEDBCCTCalculator(QMainWindow):
         # Sort rows in descending order to avoid index shifting issues
         for row in sorted(list(rows_to_remove), reverse=True):
             self.sweeps_table.removeRow(row)
-

@@ -441,32 +441,37 @@ class MainController(AEDBCCTCalculator):
         self.apply_simulation_button.setText("Apply Simulation")
         self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
         if self.run_sim_process.exitCode() == 0:
-            self.log("Successfully ran simulation.")
-            
-            if os.path.exists(self.project_file):
-                try:
-                    with open(self.project_file, "r") as f:
-                        result_data = json.load(f)
-                    touchstone_path = result_data.get("touchstone_path")
-
-                    if touchstone_path and os.path.exists(touchstone_path):
-                        self.touchstone_path_input.setText(touchstone_path)
-                        self.log(f"Updated Touchstone path to: {touchstone_path}")
-
-                        ports_json_path = self.project_file
-                        if os.path.exists(ports_json_path):
-                            self.port_metadata_path_input.setText(ports_json_path)
-                            self.log(f"Updated Port Metadata path to: {ports_json_path}")
-                        else:
-                            self.log(f"Could not find project.json at: {ports_json_path}", "orange")
-                    else:
-                        self.log("Touchstone path not found or invalid in project.json.", "orange")
-                except (IOError, json.JSONDecodeError) as e:
-                    self.log(f"Error reading project.json: {e}", "red")
-            else:
-                self.log(f"Could not find project.json.", "orange")
+            self.log("Successfully ran simulation. Starting post-processing...")
+            self.run_post_processing()
         else:
             self.log(f"Run simulation process failed with exit code {self.run_sim_process.exitCode()}.", "red")
+
+    def run_post_processing(self):
+        self.log("Generating HTML report...")
+        script_path = os.path.join(os.path.dirname(__file__), "post.py")
+        python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
+        command = [python_executable, script_path, self.project_file]
+
+        self.post_process = QProcess()
+        self.post_process.readyReadStandardOutput.connect(self.handle_post_stdout)
+        self.post_process.readyReadStandardError.connect(self.handle_post_stderr)
+        self.post_process.finished.connect(self.post_finished)
+        self.post_process.start(command[0], command[1:])
+
+    def handle_post_stdout(self):
+        data = self.post_process.readAllStandardOutput().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line)
+
+    def handle_post_stderr(self):
+        data = self.post_process.readAllStandardError().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line, color="red")
+
+    def post_finished(self):
+        if self.post_process.exitCode() == 0:
+            self.log("Post-processing finished successfully.")
+        else:
+            self.log(f"Post-processing failed with exit code {self.post_process.exitCode()}.", "red")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
