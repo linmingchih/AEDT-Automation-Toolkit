@@ -2,7 +2,10 @@ import sys
 import os
 import json
 import re
+import webbrowser
 import subprocess
+import shutil
+from datetime import datetime
 from PySide6.QtWidgets import QApplication, QFileDialog, QListWidgetItem, QTableWidgetItem
 from PySide6.QtCore import QProcess, Qt
 from PySide6.QtGui import QColor
@@ -12,6 +15,7 @@ class MainController(AEDBCCTCalculator):
     def __init__(self):
         super().__init__()
         self.project_file = None
+        self.report_path = None
         self.load_config()
         self.connect_signals()
 
@@ -30,6 +34,7 @@ class MainController(AEDBCCTCalculator):
         self.apply_simulation_button.clicked.connect(self.apply_simulation_settings)
         self.browse_project_button.clicked.connect(self.browse_project_file)
         self.apply_result_button.clicked.connect(self.run_post_processing)
+        self.open_html_button.clicked.connect(self.open_report_in_browser)
 
     def on_layout_type_changed(self):
         if self.sender().isChecked():
@@ -47,27 +52,85 @@ class MainController(AEDBCCTCalculator):
             self.log("Please select a valid project.json file.", "red")
             return
         self.project_file = project_file
+        self.html_group.setVisible(False)
         self.run_get_loss()
+
+    def open_report_in_browser(self):
+        if self.report_path and os.path.exists(self.report_path):
+            try:
+                webbrowser.open(f"file:///{os.path.abspath(self.report_path)}")
+                self.log(f"Opening {self.report_path} in browser.")
+            except Exception as e:
+                self.log(f"Could not open report in browser: {e}", "red")
+        else:
+            self.log("Report path not found or invalid.", "red")
+
 
     def closeEvent(self, event):
         self.save_config()
         super().closeEvent(event)
 
     def load_config(self):
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "config.json")
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                    sim_settings = config.get("simulation_settings", {})
+                    self.enable_cutout_checkbox.setChecked(sim_settings.get("cutout_enabled", False))
+                    self.expansion_size_input.setText(sim_settings.get("expansion_size", "0.005000"))
+                    self.siwave_version_input.setText(sim_settings.get("siwave_version", "2025.1"))
+                    
+                    sweeps = sim_settings.get("frequency_sweeps", [])
+                    if sweeps:
+                        self.sweeps_table.setRowCount(0)
+                        for sweep in sweeps:
+                            self.add_sweep(sweep)
+            except (json.JSONDecodeError, KeyError) as e:
+                self.log(f"Could not load config: {e}", "orange")
+
         if self.project_file and os.path.exists(self.project_file):
             with open(self.project_file, "r") as f:
-                config = json.load(f)
-                self.edb_version_input.setText(config.get("edb_version", "2024.1"))
+                project_config = json.load(f)
+                self.edb_version_input.setText(project_config.get("edb_version", "2024.1"))
         else:
             self.edb_version_input.setText("2024.1")
 
     def save_config(self):
-        if self.project_file and os.path.exists(self.project_file):
-            with open(self.project_file, "r") as f:
-                config = json.load(f)
-            config["edb_version"] = self.edb_version_input.text()
-            with open(self.project_file, "w") as f:
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "config.json")
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        
+        sweeps = []
+        for row in range(self.sweeps_table.rowCount()):
+            sweep_type = self.sweeps_table.cellWidget(row, 0).currentText()
+            start = self.sweeps_table.item(row, 1).text()
+            stop = self.sweeps_table.item(row, 2).text()
+            step = self.sweeps_table.item(row, 3).text()
+            sweeps.append([sweep_type, start, stop, step])
+
+        config = {
+            "simulation_settings": {
+                "cutout_enabled": self.enable_cutout_checkbox.isChecked(),
+                "expansion_size": self.expansion_size_input.text(),
+                "siwave_version": self.siwave_version_input.text(),
+                "frequency_sweeps": sweeps
+            }
+        }
+        try:
+            with open(config_path, "w") as f:
                 json.dump(config, f, indent=2)
+        except Exception as e:
+            self.log(f"Could not save config: {e}", "red")
+
+        if self.project_file and os.path.exists(self.project_file):
+            try:
+                with open(self.project_file, "r") as f:
+                    project_config = json.load(f)
+                project_config["edb_version"] = self.edb_version_input.text()
+                with open(self.project_file, "w") as f:
+                    json.dump(project_config, f, indent=2)
+            except (IOError, json.JSONDecodeError) as e:
+                self.log(f"Could not update project config: {e}", "red")
 
     def log(self, message, color=None):
         if color: self.log_window.setTextColor(QColor(color))
@@ -211,8 +274,7 @@ class MainController(AEDBCCTCalculator):
 
         if path:
             self.layout_path_label.setText(path)
-            project_dir = os.path.dirname(path)
-            self.project_file = os.path.join(project_dir, "project.json")
+            # self.project_file is now set in run_get_edb to ensure it's in the temp folder
             self.load_config()
 
     def browse_stackup(self):
@@ -225,6 +287,49 @@ class MainController(AEDBCCTCalculator):
             self.log("Please select a design first.", "red")
             return
 
+        try:
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            temp_root = os.path.join(project_root, "temp")
+            os.makedirs(temp_root, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            design_name = os.path.splitext(os.path.basename(layout_path))[0]
+            session_dir_name = f"{design_name}_{timestamp}"
+            session_dir = os.path.join(temp_root, session_dir_name)
+            os.makedirs(session_dir)
+            self.log(f"Created session directory: {session_dir}")
+
+            base_name = os.path.basename(layout_path)
+            dest_path = os.path.join(session_dir, base_name)
+
+            if os.path.isdir(layout_path):
+                shutil.copytree(layout_path, dest_path)
+                self.log(f"Copied directory {layout_path} to {dest_path}")
+            elif os.path.isfile(layout_path):
+                shutil.copy2(layout_path, dest_path)
+                self.log(f"Copied file {layout_path} to {dest_path}")
+            else:
+                self.log(f"Error: {layout_path} is not a valid file or directory.", "red")
+                return
+            
+            layout_path = dest_path
+            self.project_file = os.path.join(session_dir, "project.json")
+            self.log(f"Project file will be created at: {self.project_file}")
+
+            stackup_path = self.stackup_path_input.text()
+            if stackup_path and os.path.exists(stackup_path):
+                stackup_basename = os.path.basename(stackup_path)
+                dest_stackup_path = os.path.join(session_dir, stackup_basename)
+                shutil.copy2(stackup_path, dest_stackup_path)
+                self.log(f"Copied stackup file to {dest_stackup_path}")
+                stackup_path = dest_stackup_path
+            else:
+                stackup_path = ""
+
+        except Exception as e:
+            self.log(f"Error preparing temp folder: {e}", "red")
+            return
+
         self.log(f"Opening layout: {layout_path}")
         self.apply_import_button.setEnabled(False)
         self.apply_import_button.setText("Running...")
@@ -235,10 +340,6 @@ class MainController(AEDBCCTCalculator):
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         edb_version = self.edb_version_input.text()
         
-        stackup_path = self.stackup_path_input.text()
-        if not (stackup_path and os.path.exists(stackup_path)):
-            stackup_path = ""
-
         command = [python_executable, script_path, layout_path, edb_version, stackup_path, self.project_file]
         self.log(f"Running command: {' '.join(command)}")
 
@@ -410,7 +511,7 @@ class MainController(AEDBCCTCalculator):
         except Exception as e:
             self.log(f"Error applying simulation settings: {e}", color="red")
             self.apply_simulation_button.setEnabled(True)
-            self.apply_simulation_button.setText("Apply Simulation")
+            self.apply_simulation_button.setText("Apply")
             self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
 
     def handle_set_sim_stdout(self):
@@ -429,7 +530,7 @@ class MainController(AEDBCCTCalculator):
         else:
             self.log(f"Set simulation process failed with exit code {self.set_sim_process.exitCode()}.", "red")
             self.apply_simulation_button.setEnabled(True)
-            self.apply_simulation_button.setText("Apply Simulation")
+            self.apply_simulation_button.setText("Apply")
             self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
 
     def run_simulation_script(self):
@@ -455,7 +556,7 @@ class MainController(AEDBCCTCalculator):
     def run_sim_finished(self):
         self.log("Simulation process finished.")
         self.apply_simulation_button.setEnabled(True)
-        self.apply_simulation_button.setText("Apply Simulation")
+        self.apply_simulation_button.setText("Apply")
         self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
         if self.run_sim_process.exitCode() == 0:
             self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
@@ -504,7 +605,11 @@ class MainController(AEDBCCTCalculator):
 
     def handle_generate_report_stdout(self):
         data = self.generate_report_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
+        for line in data.splitlines():
+            self.log(line)
+            if "HTML report generated at: " in line:
+                self.report_path = line.split("HTML report generated at: ")[1].strip()
+                self.html_path_input.setText(self.report_path)
 
     def handle_generate_report_stderr(self):
         data = self.generate_report_process.readAllStandardError().data().decode(errors='ignore').strip()
@@ -513,6 +618,8 @@ class MainController(AEDBCCTCalculator):
     def generate_report_finished(self):
         if self.generate_report_process.exitCode() == 0:
             self.log("HTML report generation finished.")
+            if self.report_path:
+                self.html_group.setVisible(True)
         else:
             self.log(f"HTML report generation failed with exit code {self.generate_report_process.exitCode()}.", "red")
 

@@ -248,6 +248,16 @@ class AEDBCCTCalculator(QMainWindow):
         self.apply_result_button = QPushButton("Apply")
         result_layout.addWidget(self.apply_result_button, alignment=Qt.AlignRight)
         
+        self.html_group = QGroupBox("HTML Report")
+        html_layout = QVBoxLayout(self.html_group)
+        self.html_path_input = QLineEdit()
+        self.html_path_input.setReadOnly(True)
+        html_layout.addWidget(self.html_path_input)
+        self.open_html_button = QPushButton("Open")
+        html_layout.addWidget(self.open_html_button, alignment=Qt.AlignRight)
+        result_layout.addWidget(self.html_group)
+        self.html_group.setVisible(False)
+        
         result_layout.addStretch()
 
     def setup_simulation_tab(self):
