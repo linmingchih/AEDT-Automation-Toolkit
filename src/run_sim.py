@@ -16,29 +16,10 @@ hfss = Hfss3dLayout(edb_path, version=info['solver_version'], non_graphical=True
 
 hfss.export_touchstone_on_completion()
 hfss.analyze()
+touchstone_path = os.path.join(os.path.dirname(info['aedb_path']), f'model.s{len(info["ports"])}p')
+hfss.export_touchstone('mysetup', 'mysweep', output_file=touchstone_path)
 
-root = Path(info['aedb_path'].replace('.aedb', '.aedtexport'))
-pattern = re.compile(r"\.s(\d{1,3})p$", re.IGNORECASE)
+info["touchstone_path"] = touchstone_path
+with open(project_file, "w") as f:
+    json.dump(info, f, indent=2)
 
-# 遞迴搜尋所有 sNp 檔案
-matched_files = [
-    p.resolve() for p in root.rglob("*")
-    if p.is_file() and pattern.search(p.name)
-]
-
-# 釋放 AEDT
-hfss.release_desktop()
-
-if matched_files:
-    # 依照最後修改時間排序，取最新的
-    latest_file = max(matched_files, key=lambda p: p.stat().st_mtime)
-    touchstone_path = str(latest_file)
-    print("Latest Touchstone file:", touchstone_path)
-
-    # 儲存結果 JSON
-    info["touchstone_path"] = touchstone_path
-    with open(project_file, "w") as f:
-        json.dump(info, f, indent=2)
-else:
-    print("Error: No Touchstone file found.")
-    sys.exit(1)

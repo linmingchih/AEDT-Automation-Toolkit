@@ -358,6 +358,7 @@ class MainController(AEDBCCTCalculator):
             sweeps.append([sweep_type, start, stop, step])
 
         project_data.update({
+            "aedb_path": aedb_path,
             "edb_version": self.edb_version_input.text(),
             "cutout": {
                 "enabled": self.enable_cutout_checkbox.isChecked(),
@@ -442,35 +443,84 @@ class MainController(AEDBCCTCalculator):
         self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
         if self.run_sim_process.exitCode() == 0:
             self.log("Successfully ran simulation. Starting post-processing...")
-            self.run_post_processing()
+            self.run_get_loss()
         else:
             self.log(f"Run simulation process failed with exit code {self.run_sim_process.exitCode()}.", "red")
 
-    def run_post_processing(self):
-        self.log("Generating HTML report...")
-        script_path = os.path.join(os.path.dirname(__file__), "post.py")
+    def run_get_loss(self):
+        self.log("Getting loss data...")
+        script_path = os.path.join(os.path.dirname(__file__), "get_loss.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         command = [python_executable, script_path, self.project_file]
 
-        self.post_process = QProcess()
-        self.post_process.readyReadStandardOutput.connect(self.handle_post_stdout)
-        self.post_process.readyReadStandardError.connect(self.handle_post_stderr)
-        self.post_process.finished.connect(self.post_finished)
-        self.post_process.start(command[0], command[1:])
+        self.get_loss_process = QProcess()
+        self.get_loss_process.readyReadStandardOutput.connect(self.handle_get_loss_stdout)
+        self.get_loss_process.readyReadStandardError.connect(self.handle_get_loss_stderr)
+        self.get_loss_process.finished.connect(self.get_loss_finished)
+        self.get_loss_process.start(command[0], command[1:])
 
-    def handle_post_stdout(self):
-        data = self.post_process.readAllStandardOutput().data().decode(errors='ignore').strip()
+    def handle_get_loss_stdout(self):
+        data = self.get_loss_process.readAllStandardOutput().data().decode(errors='ignore').strip()
         for line in data.splitlines(): self.log(line)
 
-    def handle_post_stderr(self):
-        data = self.post_process.readAllStandardError().data().decode(errors='ignore').strip()
+    def handle_get_loss_stderr(self):
+        data = self.get_loss_process.readAllStandardError().data().decode(errors='ignore').strip()
         for line in data.splitlines(): self.log(line, color="red")
 
-    def post_finished(self):
-        if self.post_process.exitCode() == 0:
-            self.log("Post-processing finished successfully.")
+    def get_loss_finished(self):
+        if self.get_loss_process.exitCode() == 0:
+            self.log("Successfully got loss data. Generating HTML report...")
+            self.generate_html_report()
         else:
-            self.log(f"Post-processing failed with exit code {self.post_process.exitCode()}.", "red")
+            self.log(f"Get loss process failed with exit code {self.get_loss_process.exitCode()}.", "red")
+
+    def generate_html_report(self):
+        try:
+            with open(self.project_file, "r") as f:
+                project_data = json.load(f)
+
+            results = project_data.get("result", {})
+            if not results:
+                self.log("No results found in project file.", "red")
+                return
+
+            import plotly.graph_objects as go
+            import base64
+
+            html_content = "<html><head><title>Simulation Results</title></head><body>"
+            html_content += "<h1>Simulation Results</h1>"
+            html_content += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">'
+
+            for signal, data in results.items():
+                # Insertion Loss
+                fig_il = go.Figure()
+                fig_il.add_trace(go.Scatter(x=data['insertion_loss']['freq'], y=data['insertion_loss']['insetion loss'], mode='lines', name='Insertion Loss'))
+                fig_il.update_layout(title=f'{signal} - Insertion Loss', xaxis_title='Frequency (Hz)', yaxis_title='Loss (dB)')
+                img_bytes_il = fig_il.to_image(format="png")
+                base64_img_il = base64.b64encode(img_bytes_il).decode('utf-8')
+
+                # Return Loss
+                fig_rl = go.Figure()
+                fig_rl.add_trace(go.Scatter(x=data['return_loss']['freq'], y=data['return_loss']['return loss'], mode='lines', name='Return Loss'))
+                fig_rl.update_layout(title=f'{signal} - Return Loss', xaxis_title='Frequency (Hz)', yaxis_title='Loss (dB)')
+                img_bytes_rl = fig_rl.to_image(format="png")
+                base64_img_rl = base64.b64encode(img_bytes_rl).decode('utf-8')
+                
+                html_content += f'<div><h2>{signal}</h2>'
+                html_content += f'<h3>Insertion Loss</h3><img src="data:image/png;base64,{base64_img_il}" />'
+                html_content += f'<h3>Return Loss</h3><img src="data:image/png;base64,{base64_img_rl}" /></div>'
+
+
+            html_content += "</div></body></html>"
+
+            report_path = os.path.join(os.path.dirname(self.project_file), "report.html")
+            with open(report_path, "w") as f:
+                f.write(html_content)
+            self.log(f"HTML report generated at: {report_path}")
+
+        except Exception as e:
+            self.log(f"Error generating HTML report: {e}", "red")
+
 
 
 if __name__ == "__main__":

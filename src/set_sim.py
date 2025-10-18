@@ -18,12 +18,12 @@ if info['cutout']['enabled']:
                )
     
 if info['solver'] == 'SIwave':
-    setup = edb.create_siwave_syz_setup()
-    setup.add_frequency_sweep(frequency_sweep=info['frequency_sweeps'])
+    setup = edb.create_siwave_syz_setup('mysetup')
+    setup.add_frequency_sweep('mysweep', frequency_sweep=info['frequency_sweeps'])
 
 elif info['solver'] == 'HFSS':
-    setup = edb.create_hfss_setup()
-    sweep = setup.add_sweep(frequency_set=info['frequency_sweeps'][0])
+    setup = edb.create_hfss_setup('mysetup')
+    sweep = setup.add_sweep('mysweep', frequency_set=info['frequency_sweeps'][0])
     for i in info['frequency_sweeps'][1:]:
         sweep.add(*i)
 

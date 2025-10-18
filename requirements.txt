@@ -1,2 +1,4 @@
 scikit-rf
 pyside6
+plotly
+kaleido
