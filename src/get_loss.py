@@ -49,7 +49,7 @@ for port in info['ports']:
                 differential[pair_name][1][1] = port['sequence']      
         
 
-circuit = Circuit(version=info['solver_version'], non_graphical=False)  
+circuit = Circuit(version=info['solver_version'], non_graphical=True)  
 model = circuit.modeler.schematic.create_touchstone_component(snp_path)
 
 #%%
@@ -82,11 +82,11 @@ setup.analyze()
 result = {}
 for name, (expression1, expression2) in expressions.items():
     data = circuit.post.get_solution_data(expression1, context="Differential Pairs")
-    x1 = data.primary_sweep_values
+    x1 = data.primary_sweep_values * 1e9
     y1 = data.data_real()
     
     data = circuit.post.get_solution_data(expression2, context="Differential Pairs")
-    x2 = data.primary_sweep_values
+    x2 = data.primary_sweep_values * 1e9
     y2 = data.data_real()
     
     result[name] = {'return_loss': {'freq':list(x1), 'return loss':list(y1)},

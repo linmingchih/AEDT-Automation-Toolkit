@@ -62,9 +62,10 @@ class MainController(AEDBCCTCalculator):
             self.edb_version_input.setText("2024.1")
 
     def save_config(self):
-        if self.project_file:
-            os.makedirs(os.path.dirname(self.project_file), exist_ok=True)
-            config = {"edb_version": self.edb_version_input.text()}
+        if self.project_file and os.path.exists(self.project_file):
+            with open(self.project_file, "r") as f:
+                config = json.load(f)
+            config["edb_version"] = self.edb_version_input.text()
             with open(self.project_file, "w") as f:
                 json.dump(config, f, indent=2)
 
@@ -485,59 +486,35 @@ class MainController(AEDBCCTCalculator):
     def get_loss_finished(self):
         if self.get_loss_process.exitCode() == 0:
             self.log("Successfully got loss data. Generating HTML report...")
-            self.generate_html_report()
+            self.run_generate_report()
         else:
             self.log(f"Get loss process failed with exit code {self.get_loss_process.exitCode()}.", "red")
 
-    def generate_html_report(self):
-        try:
-            with open(self.project_file, "r") as f:
-                project_data = json.load(f)
+    def run_generate_report(self):
+        self.log("Generating HTML report...")
+        script_path = os.path.join(os.path.dirname(__file__), "generate_report.py")
+        python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
+        command = [python_executable, script_path, self.project_file]
 
-            results = project_data.get("result", {})
-            if not results:
-                self.log("No results found in project file.", "red")
-                return
+        self.generate_report_process = QProcess()
+        self.generate_report_process.readyReadStandardOutput.connect(self.handle_generate_report_stdout)
+        self.generate_report_process.readyReadStandardError.connect(self.handle_generate_report_stderr)
+        self.generate_report_process.finished.connect(self.generate_report_finished)
+        self.generate_report_process.start(command[0], command[1:])
 
-            import plotly.graph_objects as go
+    def handle_generate_report_stdout(self):
+        data = self.generate_report_process.readAllStandardOutput().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line)
 
-            html_content = "<html><head><title>Simulation Results</title></head><body>"
-            html_content += "<h1>Simulation Results</h1>"
-            html_content += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">'
+    def handle_generate_report_stderr(self):
+        data = self.generate_report_process.readAllStandardError().data().decode(errors='ignore').strip()
+        for line in data.splitlines(): self.log(line, color="red")
 
-            for signal, data in results.items():
-                fig = go.Figure()
-
-                # Convert frequency to GHz
-                freq_ghz_il = [f / 1e9 for f in data['insertion_loss']['freq']]
-                freq_ghz_rl = [f / 1e9 for f in data['return_loss']['freq']]
-
-                # Add Insertion Loss trace
-                fig.add_trace(go.Scatter(x=freq_ghz_il, y=data['insertion_loss']['insetion loss'], mode='lines', name='Insertion Loss', line=dict(color='red')))
-                
-                # Add Return Loss trace
-                fig.add_trace(go.Scatter(x=freq_ghz_rl, y=data['return_loss']['return loss'], mode='lines', name='Return Loss', line=dict(color='blue')))
-
-                fig.update_layout(
-                    title=f'{signal} - Loss',
-                    xaxis_title='Frequency (GHz)',
-                    yaxis_title='Loss (dB)'
-                )
-                fig.update_xaxes(tickformat="g")
-
-                html_content += f'<div>'
-                html_content += fig.to_html(full_html=False, include_plotlyjs='cdn')
-                html_content += f'</div>'
-
-            html_content += "</div></body></html>"
-
-            report_path = os.path.join(os.path.dirname(self.project_file), "report.html")
-            with open(report_path, "w") as f:
-                f.write(html_content)
-            self.log(f"HTML report generated at: {report_path}")
-
-        except Exception as e:
-            self.log(f"Error generating HTML report: {e}", "red")
+    def generate_report_finished(self):
+        if self.generate_report_process.exitCode() == 0:
+            self.log("HTML report generation finished.")
+        else:
+            self.log(f"HTML report generation failed with exit code {self.generate_report_process.exitCode()}.", "red")
 
 
 
