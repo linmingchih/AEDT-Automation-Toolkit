@@ -75,9 +75,11 @@ class AEDBCCTCalculator(QMainWindow):
         self.import_tab = QWidget()
         self.port_setup_tab = QWidget()
         self.simulation_tab = QWidget()
+        self.result_tab = QWidget()
         self.tabs.addTab(self.import_tab, "Import")
         self.tabs.addTab(self.port_setup_tab, "Port Setup")
         self.tabs.addTab(self.simulation_tab, "Simulation")
+        self.tabs.addTab(self.result_tab, "Result")
         main_layout.addWidget(self.tabs)
 
         log_group = QGroupBox("Information")
@@ -92,6 +94,7 @@ class AEDBCCTCalculator(QMainWindow):
         self.setup_import_tab()
         self.setup_port_setup_tab()
         self.setup_simulation_tab()
+        self.setup_result_tab()
         self.apply_styles()
 
 
@@ -174,6 +177,8 @@ class AEDBCCTCalculator(QMainWindow):
         self.apply_simulation_button_original_style = primary_style
         self.apply_import_button.setStyleSheet(primary_style)
         self.apply_import_button_original_style = primary_style
+        self.apply_result_button.setStyleSheet(primary_style)
+        self.apply_result_button_original_style = primary_style
 
     def setup_port_setup_tab(self):
         port_setup_layout = QVBoxLayout(self.port_setup_tab)
@@ -225,6 +230,25 @@ class AEDBCCTCalculator(QMainWindow):
         self.apply_button = QPushButton("Apply")
         self.apply_button.setEnabled(False)
         port_setup_layout.addWidget(self.apply_button, alignment=Qt.AlignRight)
+
+    def setup_result_tab(self):
+        result_layout = QVBoxLayout(self.result_tab)
+        project_group = QGroupBox("Project File")
+        project_layout = QHBoxLayout(project_group)
+        
+        self.project_path_input = QLineEdit()
+        self.browse_project_button = QPushButton("Browse...")
+        
+        project_layout.addWidget(QLabel("Project JSON:"))
+        project_layout.addWidget(self.project_path_input)
+        project_layout.addWidget(self.browse_project_button)
+        
+        result_layout.addWidget(project_group)
+        
+        self.apply_result_button = QPushButton("Apply")
+        result_layout.addWidget(self.apply_result_button, alignment=Qt.AlignRight)
+        
+        result_layout.addStretch()
 
     def setup_simulation_tab(self):
         simulation_layout = QVBoxLayout(self.simulation_tab)

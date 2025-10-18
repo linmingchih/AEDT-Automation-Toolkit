@@ -2026,3 +2026,150 @@ Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
 [warning] No report category provided. Automatically identified Standard
 [info] Solution Data Correctly Loaded.
 Stopping Batch Run: 1:34:01 PM  Oct 18, 2025
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 1:47:01 PM  Oct 18, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 60729.
+
+[info] Project:pcb, Design:pcb, siwave_ng 2025 R1 (Built: Nov 30 2024 15:51:52) (01:47:19 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_M_CLK0"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_RX0"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_TX0"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REF1"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REFCLK0"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_RD"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_TD"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD1"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD2"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD3"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD4"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD5"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D_CH"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH1_D"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D_CH"; both + and - net names are empty.  (01:47:20 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" started on host AAPVHWVMVEUGTEC at Sat Oct 18 13:47:21 2025 (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, [Simulation Directory]: "C:/Users/mlin/AppData/Local/Temp/ens_temp_3588.pjt/" (01:47:21 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_000" has a thickness of 0 mm and will be ignored (01:47:21 PM  Oct 18, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_012" has a thickness of 0 mm and will be ignored (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, GND (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<0> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<1> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<2> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<3> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<4> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<5> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<6> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<7> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<8> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<9> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<10> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<11> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<12> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<13> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<14> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<15> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQS<0> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQS<1> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQS_N<0> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, M_DQS_N<1> (01:47:21 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, SYZ solver completed with return code 0 (01:47:31 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" completed on host AAPVHWVMVEUGTEC at Sat Oct 18 13:47:31 2025 (01:47:31 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, Saved "C:/Users/mlin/AppData/Local/Temp/ens_temp_3588.pjt/pcb.siw" (01:47:31 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, Touchstone export: Writing to "D:/OneDrive - ANSYS, Inc/a-client-repositories/lmz-siwave-SI-2025-10-17/test/pcb.aedtexport/pcb/mysetup_ts_2025_10_18_下午_01_47_11/mysweep_DV3.s40p" (01:47:35 PM  Oct 18, 2025)
+[info] Project:pcb, Design:pcb, Touchstone export: Writing to "D:/OneDrive - ANSYS, Inc/a-client-repositories/lmz-siwave-SI-2025-10-17/test/model.s40p" (01:47:36 PM  Oct 18, 2025)
+[info] No project is defined. Project pcb exists and has been read.
+[info] No consistent unique design is present. Inserting a new design.
+[info] Added design 'Circuit Design_FRG' of type Circuit Design.
+[info] Aedt Objects correctly read
+[info] ModelerCircuit class has been initialized! Elapsed time: 0m 0sec
+[info] ModelerNexxim class has been initialized!
+[info] Modeler class has been initialized! Elapsed time: 0m 0sec
+[info] Parsing D:\OneDrive - ANSYS, Inc\a-client-repositories\lmz-siwave-SI-2025-10-17\test\pcb.aedt.
+[info] File D:\OneDrive - ANSYS, Inc\a-client-repositories\lmz-siwave-SI-2025-10-17\test\pcb.aedt correctly loaded. Elapsed time: 0m 0sec
+[info] aedt file load time 0.09917473793029785
+[info] Project pcb Saved correctly
+[info] Key Desktop/ActiveDSOConfigurations/Circuit Design correctly changed.
+[info] Solving design setup MySetupAuto
+[info] Project:pcb, Design:Circuit Design_FRG, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (01:47:42 PM  Oct 18, 2025)
+[info] Project:pcb, Design:Circuit Design_FRG, (info): Processing circuit for new analysis. (01:47:42 PM  Oct 18, 2025)
+[info] Project:pcb, Design:Circuit Design_FRG, (info): Starting analysis type LNA. (01:47:43 PM  Oct 18, 2025)
+[info] Project:pcb, Design:Circuit Design_FRG, (info): Simulation succeeded. Total simulator time: 0:00:00 (01:47:43 PM  Oct 18, 2025)
+[info] Design setup MySetupAuto solved correctly in 0.0h 0.0m 3.0s
+[info] Key Desktop/ActiveDSOConfigurations/Circuit Design correctly changed.
+[info] Post class has been initialized! Elapsed time: 0m 0sec
+[info] Solution Data Correctly Loaded.
+[info] Solution Data Correctly Loaded.
+[info] Solution Data Correctly Loaded.
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+[warning] No report category provided. Automatically identified Standard
+[info] Solution Data Correctly Loaded.
+Stopping Batch Run: 1:48:04 PM  Oct 18, 2025

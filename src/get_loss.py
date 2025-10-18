@@ -5,10 +5,18 @@ from collections import defaultdict
 from pyaedt import Circuit
 
 #json_path = sys.argv[1]
-json_path = r"D:\OneDrive - ANSYS, Inc\a-client-repositories\lmz-siwave-SI-2025-10-17\test\project.json"
+if len(sys.argv) > 1:
+    json_path = sys.argv[1]
+else:
+    json_path = r"D:\OneDrive - ANSYS, Inc\a-client-repositories\lmz-siwave-SI-2025-10-17\test\project.json"
 
 with open(json_path) as f:
     info = json.load(f)
+
+if "touchstone_path" not in info or not info["touchstone_path"]:
+    print("Error: 'touchstone_path' not found in project.json.")
+    print("Please ensure the simulation has completed successfully before running post-processing.")
+    sys.exit(1)
 
 snp_path = info["touchstone_path"]
 

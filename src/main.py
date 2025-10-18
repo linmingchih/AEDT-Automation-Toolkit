@@ -28,11 +28,26 @@ class MainController(AEDBCCTCalculator):
         self.differential_pairs_list.itemChanged.connect(self.update_checked_count)
         self.apply_button.clicked.connect(self.apply_settings)
         self.apply_simulation_button.clicked.connect(self.apply_simulation_settings)
+        self.browse_project_button.clicked.connect(self.browse_project_file)
+        self.apply_result_button.clicked.connect(self.run_post_processing)
 
     def on_layout_type_changed(self):
         if self.sender().isChecked():
             self.layout_path_label.setText("No design loaded")
             self.stackup_path_input.clear()
+
+    def browse_project_file(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Select project.json file", "", "JSON files (*.json)")
+        if path:
+            self.project_path_input.setText(path)
+
+    def run_post_processing(self):
+        project_file = self.project_path_input.text()
+        if not project_file or not os.path.exists(project_file):
+            self.log("Please select a valid project.json file.", "red")
+            return
+        self.project_file = project_file
+        self.run_get_loss()
 
     def closeEvent(self, event):
         self.save_config()
@@ -442,8 +457,8 @@ class MainController(AEDBCCTCalculator):
         self.apply_simulation_button.setText("Apply Simulation")
         self.apply_simulation_button.setStyleSheet(self.apply_simulation_button_original_style)
         if self.run_sim_process.exitCode() == 0:
-            self.log("Successfully ran simulation. Starting post-processing...")
-            self.run_get_loss()
+            self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
+            self.project_path_input.setText(self.project_file)
         else:
             self.log(f"Run simulation process failed with exit code {self.run_sim_process.exitCode()}.", "red")
 
@@ -485,31 +500,34 @@ class MainController(AEDBCCTCalculator):
                 return
 
             import plotly.graph_objects as go
-            import base64
 
             html_content = "<html><head><title>Simulation Results</title></head><body>"
             html_content += "<h1>Simulation Results</h1>"
             html_content += '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">'
 
             for signal, data in results.items():
-                # Insertion Loss
-                fig_il = go.Figure()
-                fig_il.add_trace(go.Scatter(x=data['insertion_loss']['freq'], y=data['insertion_loss']['insetion loss'], mode='lines', name='Insertion Loss'))
-                fig_il.update_layout(title=f'{signal} - Insertion Loss', xaxis_title='Frequency (Hz)', yaxis_title='Loss (dB)')
-                img_bytes_il = fig_il.to_image(format="png")
-                base64_img_il = base64.b64encode(img_bytes_il).decode('utf-8')
+                fig = go.Figure()
 
-                # Return Loss
-                fig_rl = go.Figure()
-                fig_rl.add_trace(go.Scatter(x=data['return_loss']['freq'], y=data['return_loss']['return loss'], mode='lines', name='Return Loss'))
-                fig_rl.update_layout(title=f'{signal} - Return Loss', xaxis_title='Frequency (Hz)', yaxis_title='Loss (dB)')
-                img_bytes_rl = fig_rl.to_image(format="png")
-                base64_img_rl = base64.b64encode(img_bytes_rl).decode('utf-8')
+                # Convert frequency to GHz
+                freq_ghz_il = [f / 1e9 for f in data['insertion_loss']['freq']]
+                freq_ghz_rl = [f / 1e9 for f in data['return_loss']['freq']]
+
+                # Add Insertion Loss trace
+                fig.add_trace(go.Scatter(x=freq_ghz_il, y=data['insertion_loss']['insetion loss'], mode='lines', name='Insertion Loss', line=dict(color='red')))
                 
-                html_content += f'<div><h2>{signal}</h2>'
-                html_content += f'<h3>Insertion Loss</h3><img src="data:image/png;base64,{base64_img_il}" />'
-                html_content += f'<h3>Return Loss</h3><img src="data:image/png;base64,{base64_img_rl}" /></div>'
+                # Add Return Loss trace
+                fig.add_trace(go.Scatter(x=freq_ghz_rl, y=data['return_loss']['return loss'], mode='lines', name='Return Loss', line=dict(color='blue')))
 
+                fig.update_layout(
+                    title=f'{signal} - Loss',
+                    xaxis_title='Frequency (GHz)',
+                    yaxis_title='Loss (dB)'
+                )
+                fig.update_xaxes(tickformat="g")
+
+                html_content += f'<div>'
+                html_content += fig.to_html(full_html=False, include_plotlyjs='cdn')
+                html_content += f'</div>'
 
             html_content += "</div></body></html>"
 
