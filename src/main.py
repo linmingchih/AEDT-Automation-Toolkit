@@ -228,7 +228,7 @@ class MainController(AEDBCCTCalculator):
             self.apply_button.setText("Running...")
             self.apply_button.setStyleSheet("background-color: yellow; color: black;")
 
-            script_path = os.path.join(os.path.dirname(__file__), "set_edb.py")
+            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "set_edb.py")
             python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
             edb_version = self.edb_version_input.text()
             command = [python_executable, script_path, self.project_file, edb_version]
@@ -336,7 +336,7 @@ class MainController(AEDBCCTCalculator):
         self.apply_import_button.setStyleSheet("background-color: yellow; color: black;")
         self.current_layout_path = layout_path # Store for finished handler
 
-        script_path = os.path.join(os.path.dirname(__file__), "get_edb.py")
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "get_edb.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         edb_version = self.edb_version_input.text()
         
@@ -498,7 +498,7 @@ class MainController(AEDBCCTCalculator):
             self.apply_simulation_button.setText("Running...")
             self.apply_simulation_button.setStyleSheet("background-color: yellow; color: black;")
 
-            script_path = os.path.join(os.path.dirname(__file__), "set_sim.py")
+            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "set_sim.py")
             python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
             command = [python_executable, script_path, self.project_file]
             
@@ -535,7 +535,7 @@ class MainController(AEDBCCTCalculator):
 
     def run_simulation_script(self):
         self.log("Starting simulation...")
-        script_path = os.path.join(os.path.dirname(__file__), "run_sim.py")
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "run_sim.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         command = [python_executable, script_path, self.project_file]
 
@@ -566,7 +566,7 @@ class MainController(AEDBCCTCalculator):
 
     def run_get_loss(self):
         self.log("Getting loss data...")
-        script_path = os.path.join(os.path.dirname(__file__), "get_loss.py")
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "get_loss.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         command = [python_executable, script_path, self.project_file]
 
@@ -593,7 +593,7 @@ class MainController(AEDBCCTCalculator):
 
     def run_generate_report(self):
         self.log("Generating HTML report...")
-        script_path = os.path.join(os.path.dirname(__file__), "generate_report.py")
+        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "generate_report.py")
         python_executable = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv", "Scripts", "python.exe")
         command = [python_executable, script_path, self.project_file]
 
