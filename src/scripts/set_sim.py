@@ -1,8 +1,9 @@
 import sys
 import json
 
-#project_file = '../data/project.json'
+
 project_file = sys.argv[1]
+#project_file = r"D:\OneDrive - ANSYS, Inc\a-client-repositories\lmz-siwave-SI-2025-10-17\SI Automation Flow\temp\pcb_20251019_093254\project.json"
 
 with open(project_file) as f:
     info = json.load(f)
@@ -14,7 +15,9 @@ edb = Edb(edb_path, version=info['edb_version'])
 if info['cutout']['enabled']:
     edb.cutout(signal_nets=info['cutout']['signal_nets'],
                reference_nets=info['cutout']['reference_net'],
-               expansion_size=float(info['cutout']['expansion_size'])
+               extent_type = "Bounding",
+               expansion_size=float(info['cutout']['expansion_size']),
+               
                )
     
 if info['solver'] == 'SIwave':
