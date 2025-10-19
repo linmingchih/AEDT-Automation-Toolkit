@@ -2,17 +2,16 @@ import os
 import sys
 import json
 import importlib
+from functools import partial
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
     QGroupBox,
     QTabWidget,
     QTextEdit,
-    QComboBox,
-    QLabel,
 )
+from PySide6.QtGui import QAction
 
 class MainApplicationWindow(QMainWindow):
     def __init__(self):
@@ -22,19 +21,15 @@ class MainApplicationWindow(QMainWindow):
 
         self.current_controller = None
         self.apps = {}
+        self.first_app_name = None
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QVBoxLayout(main_widget)
 
-        # App Selector
-        app_selector_layout = QHBoxLayout()
-        app_selector_layout.addWidget(QLabel("Select App:"))
-        self.app_combo = QComboBox()
-        self.app_combo.currentIndexChanged.connect(self.switch_app)
-        app_selector_layout.addWidget(self.app_combo)
-        app_selector_layout.addStretch(1)
-        main_layout.addLayout(app_selector_layout)
+        # --- Menu Bar ---
+        menu_bar = self.menuBar()
+        self.apps_menu = menu_bar.addMenu("Apps")
 
         # Tabs
         self.tabs = QTabWidget()
@@ -53,19 +48,20 @@ class MainApplicationWindow(QMainWindow):
         self.apply_styles()
         self.discover_apps()
 
-        if self.apps:
-            self.app_combo.setCurrentIndex(0)
-            self.switch_app(0)
+        # Load the first discovered app by default
+        if self.first_app_name:
+            self.switch_app(self.first_app_name)
 
     def discover_apps(self):
         """
-        Scans the 'apps' directory to find available applications.
+        Scans the 'apps' directory and populates the 'Apps' menu.
         """
         apps_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "apps")
         if not os.path.isdir(apps_dir):
             return
 
-        for app_name in os.listdir(apps_dir):
+        app_names = sorted(os.listdir(apps_dir))
+        for app_name in app_names:
             app_path = os.path.join(apps_dir, app_name)
             config_path = os.path.join(app_path, "config.json")
             controller_path = os.path.join(app_path, "controller.py")
@@ -75,17 +71,21 @@ class MainApplicationWindow(QMainWindow):
                     with open(config_path, "r") as f:
                         config = json.load(f)
                         display_name = config.get("display_name", app_name)
-                        self.apps[display_name] = app_name
-                        self.app_combo.addItem(display_name)
+                        
+                        if not self.first_app_name:
+                            self.first_app_name = app_name
+
+                        action = QAction(display_name, self)
+                        action.triggered.connect(partial(self.switch_app, app_name))
+                        self.apps_menu.addAction(action)
+
                 except Exception as e:
                     print(f"Could not load app '{app_name}': {e}")
 
-    def switch_app(self, index):
+    def switch_app(self, app_name):
         """
         Loads the selected application's controller and tabs.
         """
-        display_name = self.app_combo.itemText(index)
-        app_name = self.apps.get(display_name)
         if not app_name:
             return
 
@@ -94,8 +94,16 @@ class MainApplicationWindow(QMainWindow):
 
         # Dynamically import and instantiate the controller
         try:
+            # Invalidate caches to ensure the latest controller is loaded
+            importlib.invalidate_caches()
             controller_module_name = f"apps.{app_name}.controller"
-            controller_module = importlib.import_module(controller_module_name)
+            
+            # If the module is already loaded, reload it
+            if controller_module_name in sys.modules:
+                controller_module = importlib.reload(sys.modules[controller_module_name])
+            else:
+                controller_module = importlib.import_module(controller_module_name)
+
             self.current_controller = controller_module.AppController(app_name)
             self.current_controller.log_window = self.log_window # Give controller access to the logger
         except Exception as e:
@@ -116,21 +124,16 @@ class MainApplicationWindow(QMainWindow):
                     tab_module_name = f"tabs.{tab_name}"
                     tab_module = importlib.import_module(tab_module_name)
                     
-                    # Assuming the class name is CamelCase version of the file name
-                    # e.g., import_tab.py -> ImportTab
                     class_name = "".join(word.capitalize() for word in tab_name.split('_'))
                     tab_class = getattr(tab_module, class_name)
                     
-                    # Pass the controller to the tab instance
                     tab_instance = tab_class(self.current_controller)
                     self.tabs.addTab(tab_instance, " ".join(word.capitalize() for word in tab_name.split('_')))
                     loaded_tabs[tab_name] = tab_instance
                 
-                # Pass tab instances to controller for signal connection
                 if hasattr(self.current_controller, "connect_signals"):
                     self.current_controller.connect_signals(loaded_tabs)
                 
-                # Load app-specific data
                 if hasattr(self.current_controller, "load_config"):
                     self.current_controller.load_config()
 
