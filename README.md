@@ -1,20 +1,35 @@
-# SI 自動化模擬工具
+# SI/PI 自動化模擬工具平台
 
-這是一個用於訊號完整性 (SI) 模擬的自動化工具，提供圖形化使用者介面 (GUI) 來簡化從設計導入到結果分析的整個流程。
+這是一個模組化的圖形化使用者介面 (GUI) 平台，用於自動化訊號完整性 (SI) 和電源完整性 (PI) 的模擬流程。此平台被設計為一個可擴充的多應用程式系統，不同的工作流程 (Apps) 可以作為獨立模組新增，並共享核心的UI元件和腳本。
 
-## 主要功能
+## 主要特色
 
-- **設計導入**: 支援 Ansys EDB (`.aedb`) 和 Cadence Allegro (`.brd`) 設計檔案。
-- **圖形化設定**: 提供方便的介面來設定元件、網路和埠。
-- **自動化模擬**: 自動設定並執行 SIwave 模擬。
-- **損耗計算**: 自動計算所選網路的插入損耗 (Insertion Loss) 和回波損耗 (Return Loss)。
-- **互動式報告**: 生成一個獨立的 HTML 報告，您可以在其中：
-  - 透過側邊欄的複選框，動態選擇要顯示的多個訊號。
-  - 在同一個圖表中比較不同訊號的損耗曲線。
-  - 將滑鼠懸停在側邊欄的訊號名稱上，可以高亮顯示圖表中對應的曲線。
-  - 自由切換顯示插入損耗或回波損耗。
+- **多App支援**: 透過下拉式選單在不同的工作流程App之間輕鬆切換。
+- **模組化與可擴充**: 每個App都是一個獨立的模組，包含自己的設定檔和邏輯控制器。新增一個新的App只需在`apps`資料夾中建立一個新的子目錄，無需修改核心程式碼。
+- **設定檔驅動**: 每個App的UI（顯示哪些頁籤）由其各自的`config.json`檔案定義，提供高度的靈活性。
+- **共享元件庫**: 所有的App共享位於`src/tabs`的UI元件和`src/scripts`的後端處理腳本，最大化地重用程式碼。
 
 ![應用程式介面](images/GUI.png)
+
+## 專案結構
+
+新的架構將UI、App邏輯和共享腳本分離：
+
+```
+SI Automation Flow/
+├── apps/                   <-- 存放所有獨立的App模組
+│   └── si_app/             <-- 範例：SI App
+│       ├── config.json     <-- SI App的設定檔 (定義頁籤等)
+│       └── controller.py   <-- SI App的商業邏輯
+├── src/
+│   ├── gui.py              <-- 主視窗框架與App載入器
+│   ├── main.py             <-- 應用程式進入點
+│   ├── scripts/            <-- 所有App共享的後端腳本
+│   └── tabs/               <-- 所有App共享的UI頁籤元件
+├── .gitignore
+├── requirements.txt
+└── ...
+```
 
 ## 系統需求
 
@@ -26,39 +41,94 @@
 1.  **克隆專案庫**
     ```bash
     git clone <repository_url>
+    cd "SI Automation Flow"
     ```
 
-2.  **安裝依賴套件**
-    執行 `install.ps1` PowerShell 腳本。此腳本將會自動建立一個 Python 虛擬環境 (`.venv`) 並安裝所有必要的依賴套件。
+2.  **建立虛擬環境**
+    ```bash
+    python -m venv .venv
+    ```
+
+3.  **啟動虛擬環境**
     ```powershell
-    .\install.ps1
+    # Windows (PowerShell)
+    .venv\Scripts\Activate.ps1
+    ```
+    ```bash
+    # macOS/Linux
+    source .venv/bin/activate
+    ```
+
+4.  **安裝依賴套件**
+    ```bash
+    pip install -r requirements.txt
     ```
 
 ## 使用方法
 
 1.  **啟動應用程式**
-    執行 `main.bat` 批次檔來啟動 GUI。
-    ```batch
-    .\main.bat
+    ```bash
+    python src/main.py
+    ```
+2.  **選擇App**
+    - 啟動後，使用視窗左上角的下拉選單選擇您想要執行的App（例如 "SI Automation Flow"）。
+    - GUI將會根據該App的設定檔動態載入對應的頁籤。
+3.  **遵循App流程**
+    - 依照各頁籤的指示完成操作，例如導入設計、設定參數、執行模擬和查看結果。
+
+## 如何擴充 (新增一個App)
+
+平台的核心優勢在於其擴充性。要新增一個新的App（例如 "PI Analysis Flow"），請遵循以下步驟：
+
+1.  **建立App資料夾**
+    在 `apps/` 目錄下建立一個新的資料夾，例如 `apps/pi_app`。
+
+2.  **建立 `config.json`**
+    在 `apps/pi_app/` 中建立一個 `config.json` 檔案。此檔案定義了App的顯示名稱和它將使用的頁籤順序。頁籤的名稱必須對應`src/tabs/`中的檔案名稱（不含`.py`）。
+    ```json
+    {
+      "display_name": "PI Analysis Flow",
+      "tabs": [
+        "import_tab",
+        "pi_setup_tab",
+        "simulation_tab",
+        "result_tab"
+      ],
+      "settings": {
+        "analysis_type": "Impedance"
+      }
+    }
     ```
 
-2.  **第一步：導入設計 (Import Tab)**
-    - 選擇您的設計類型 (`.brd` 或 `.aedb`)。
-    - 點擊 "Open..." 選擇您的設計檔案。如果導入的是 `.brd` 檔案，您還可以額外指定一個堆疊設定檔 (`.xml`)。
-    - 確認 Ansys EDB 版本。
-    - 點擊 "Apply" 開始導入。導入成功後，應用程式會自動切換到 "Port Setup" 分頁。
+3.  **建立 `controller.py`**
+    在 `apps/pi_app/` 中建立一個 `controller.py` 檔案。這個檔案包含了該App獨有的商業邏輯。您需要建立一個名為 `AppController` 的類別，主程式會自動尋找並載入它。
+    ```python
+    from PySide6.QtCore import QObject
 
-3.  **第二步：設定埠 (Port Setup Tab)**
-    - 使用正則表達式過濾並在左右兩側的列表中分別選擇控制器 (Controller) 和 DRAM 元件。
-    - 在下方的網路列表中，勾選您想要分析的單端 (Single-Ended) 和差動 (Differential) 網路。
-    - 點擊 "Apply" 將埠設定應用到 EDB 專案中。
+    class AppController(QObject):
+        def __init__(self, app_name):
+            super().__init__()
+            self.app_name = app_name
+            self.log_window = None
+            self.tabs = {}
+            print(f"Controller for '{self.app_name}' initialized.")
 
-4.  **第三步：執行模擬 (Simulation Tab)**
-    - 根據需求配置 SIwave 求解器版本和頻率掃描範圍。
-    - 點擊 "Apply" 開始執行模擬。此過程可能需要一些時間。
+        def connect_signals(self, tabs):
+            """
+            將UI頁籤中的訊號連接到此控制器的方法。
+            """
+            self.tabs = tabs
+            import_tab = tabs.get("import_tab")
+            if import_tab:
+                # 範例: import_tab.some_button.clicked.connect(self.do_something)
+                pass
 
-5.  **第四步：查看結果 (Result Tab)**
-    - 模擬成功後，`project.json` 的檔案路徑會被自動填入此處。您也可以點擊 "Browse..." 手動指定。
-    - 點擊 "Apply" 來計算損耗參數並生成互動式的 HTML 報告。報告將會儲存在與 `project.json` 相同的資料夾下。
+        def do_something(self):
+            self.log("Doing something for PI App...")
 
-![互動式報告](images/report.png)
+        def log(self, message, color=None):
+            if self.log_window:
+                self.log_window.append(message)
+    ```
+
+完成以上步驟後，重新啟動應用程式 (`python src/main.py`)，新的 "PI Analysis Flow" App 將會自動出現在下拉選單中。
