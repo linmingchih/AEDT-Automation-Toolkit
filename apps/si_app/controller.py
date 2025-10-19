@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QFileDialog, QListWidgetItem
 
-from src.services import ExternalScriptRunner
+from src.services import AppStateStore, ExternalScriptRunner
 
 class AppController(QObject):
     def __init__(self, app_name):
@@ -27,7 +27,8 @@ class AppController(QObject):
         self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.scripts_dir = os.path.join(self.project_root, "src", "scripts")
 
-        # External process coordination
+        # Persistence and external process coordination
+        self.state_store = AppStateStore()
         self.script_runner = ExternalScriptRunner(parent=self)
         self.script_runner.started.connect(self.on_task_started)
         self.script_runner.finished.connect(self.on_task_finished)
@@ -290,39 +291,71 @@ class AppController(QObject):
     def get_config_path(self):
         return os.path.join(os.path.dirname(__file__), "config.json")
 
+    def _apply_simulation_settings_to_tab(self, simulation_tab, settings):
+        if not simulation_tab or not isinstance(settings, dict):
+            return
+
+        simulation_tab.enable_cutout_checkbox.setChecked(
+            settings.get("cutout_enabled", simulation_tab.enable_cutout_checkbox.isChecked())
+        )
+        simulation_tab.expansion_size_input.setText(
+            settings.get("expansion_size", simulation_tab.expansion_size_input.text() or "0.005000")
+        )
+        simulation_tab.siwave_version_input.setText(
+            settings.get("siwave_version", simulation_tab.siwave_version_input.text() or "2025.1")
+        )
+
+        sweeps = settings.get("frequency_sweeps")
+        if sweeps is not None:
+            simulation_tab.sweeps_table.setRowCount(0)
+            for sweep in sweeps:
+                simulation_tab.add_sweep(sweep)
+
     def load_config(self):
         config_path = self.get_config_path()
         simulation_tab = self.tabs.get("simulation_tab")
         import_tab = self.tabs.get("import_tab")
+        result_tab = self.tabs.get("result_tab")
 
-        if os.path.exists(config_path) and simulation_tab:
+        defaults = {}
+        if os.path.exists(config_path):
             try:
-                with open(config_path, "r") as f:
-                    config = json.load(f)
-                    sim_settings = config.get("settings", {})
-                    simulation_tab.enable_cutout_checkbox.setChecked(sim_settings.get("cutout_enabled", False))
-                    simulation_tab.expansion_size_input.setText(sim_settings.get("expansion_size", "0.005000"))
-                    simulation_tab.siwave_version_input.setText(sim_settings.get("siwave_version", "2025.1"))
-                    
-                    sweeps = sim_settings.get("frequency_sweeps", [])
-                    if sweeps:
-                        simulation_tab.sweeps_table.setRowCount(0)
-                        for sweep in sweeps:
-                            simulation_tab.add_sweep(sweep)
-            except (json.JSONDecodeError, KeyError) as e:
-                self.log(f"Could not load config: {e}", "orange")
+                with open(config_path, "r", encoding="utf-8") as f:
+                    defaults = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                self.log(f"Could not load default config: {e}", "orange")
+
+        if simulation_tab and defaults.get("settings"):
+            self._apply_simulation_settings_to_tab(simulation_tab, defaults.get("settings", {}))
+
+        state = self.state_store.load(self.app_name)
+
+        if simulation_tab:
+            sim_state = state.get("simulation_settings")
+            if sim_state:
+                self._apply_simulation_settings_to_tab(simulation_tab, sim_state)
+
+        if import_tab:
+            edb_version = state.get("edb_version") or "2024.1"
+            import_tab.edb_version_input.setText(edb_version)
+
+        last_project = state.get("last_project_file")
+        if last_project and os.path.exists(last_project):
+            self.project_file = last_project
+            if result_tab:
+                result_tab.project_path_input.setText(last_project)
 
         if self.project_file and os.path.exists(self.project_file) and import_tab:
-            with open(self.project_file, "r") as f:
-                project_config = json.load(f)
-                import_tab.edb_version_input.setText(project_config.get("edb_version", "2024.1"))
-        elif import_tab:
-            import_tab.edb_version_input.setText("2024.1")
+            try:
+                with open(self.project_file, "r", encoding="utf-8") as f:
+                    project_config = json.load(f)
+                import_tab.edb_version_input.setText(
+                    project_config.get("edb_version", import_tab.edb_version_input.text() or "2024.1")
+                )
+            except (IOError, json.JSONDecodeError) as e:
+                self.log(f"Could not read project config: {e}", "orange")
 
     def save_config(self):
-        config_path = self.get_config_path()
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        
         simulation_tab = self.tabs.get("simulation_tab")
         import_tab = self.tabs.get("import_tab")
         if not simulation_tab: return
@@ -335,31 +368,32 @@ class AppController(QObject):
             step = simulation_tab.sweeps_table.item(row, 3).text()
             sweeps.append([sweep_type, start, stop, step])
 
-        try:
-            with open(config_path, "r") as f:
-                config = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            config = {}
-
-        config["settings"] = {
+        state = self.state_store.load(self.app_name)
+        state["simulation_settings"] = {
             "cutout_enabled": simulation_tab.enable_cutout_checkbox.isChecked(),
             "expansion_size": simulation_tab.expansion_size_input.text(),
             "siwave_version": simulation_tab.siwave_version_input.text(),
             "frequency_sweeps": sweeps
         }
+
+        if import_tab:
+            state["edb_version"] = import_tab.edb_version_input.text()
+
+        if self.project_file:
+            state["last_project_file"] = self.project_file
+
         try:
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=2)
+            self.state_store.save(self.app_name, state)
         except Exception as e:
-            self.log(f"Could not save config: {e}", "red")
+            self.log(f"Could not persist application state: {e}", "red")
 
         if self.project_file and os.path.exists(self.project_file) and import_tab:
             try:
-                with open(self.project_file, "r") as f:
+                with open(self.project_file, "r", encoding="utf-8") as f:
                     project_config = json.load(f)
                 project_config["edb_version"] = import_tab.edb_version_input.text()
                 project_config["app_name"] = self.app_name
-                with open(self.project_file, "w") as f:
+                with open(self.project_file, "w", encoding="utf-8") as f:
                     json.dump(project_config, f, indent=2)
             except (IOError, json.JSONDecodeError) as e:
                 self.log(f"Could not update project config: {e}", "red")
