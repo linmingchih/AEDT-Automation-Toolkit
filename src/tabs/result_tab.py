@@ -11,8 +11,9 @@ from PySide6.QtCore import Qt
 
 
 class ResultTab(QWidget):
-    def __init__(self):
+    def __init__(self, controller):
         super().__init__()
+        self.controller = controller
         self.setup_ui()
 
     def setup_ui(self):
