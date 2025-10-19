@@ -14,13 +14,13 @@
         "log scale",
         "1Hz",
         "0.1GHz",
-        "20"
+        "10"
       ],
       [
         "linear scale",
         "0.1GHz",
         "1GHz",
-        "0.05GHz"
+        "0.1GHz"
       ]
     ]
   }
