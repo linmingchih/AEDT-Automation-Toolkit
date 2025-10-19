@@ -132,3 +132,49 @@ SI Automation Flow/
     ```
 
 完成以上步驟後，重新啟動應用程式 (`python src/main.py`)，新的 "PI Analysis Flow" App 將會自動出現在下拉選單中。
+
+## External Script Runner
+
+The `ExternalScriptRunner` centralises all long-running helper scripts so every tab can reuse a consistent queue, logging, and retry policy. The `AppController` exposes `run_external_script(...)` as a thin wrapper around the runner, which also keeps track of UI buttons and forwards log output to the shared log panel.
+
+### Minimal example inside a tab
+
+```python
+import os
+import sys
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+
+
+class ExampleTab(QWidget):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+        layout = QVBoxLayout(self)
+
+        self.run_button = QPushButton("Run Demo Script")
+        layout.addWidget(self.run_button)
+        self.run_button.clicked.connect(self.run_demo_task)
+
+    def run_demo_task(self):
+        script_path = os.path.join(
+            self.controller.scripts_dir,
+            "generate_report.py",
+        )
+        metadata = {
+            "type": "demo_report",
+            "description": "Generating demo report",
+            "button": self.run_button,
+            "button_style": self.run_button.styleSheet(),
+            "button_reset_text": self.run_button.text(),
+        }
+
+        # `run_external_script` registers the task, so controller log handlers
+        # automatically push stdout/stderr lines into the GUI log panel.
+        self.controller.run_external_script(
+            [sys.executable, script_path, "<path_to_project.json>"],
+            metadata=metadata,
+            input_path="<path_to_project.json>",
+        )
+```
+
+Because the controller already wires the runner's `log_message` signal to the GUI log widget, any output produced by the script shows up automatically. The metadata payload also lets the controller manage button states and highlight failures without duplicating boilerplate inside each tab.

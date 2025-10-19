@@ -1,13 +1,16 @@
-import sys
-import os
 import json
+import os
 import re
-import webbrowser
 import shutil
+import sys
+import webbrowser
 from datetime import datetime
-from PySide6.QtCore import QProcess, Qt, QObject
+
+from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QFileDialog, QListWidgetItem
+
+from src.services import ExternalScriptRunner
 
 class AppController(QObject):
     def __init__(self, app_name):
@@ -17,20 +20,23 @@ class AppController(QObject):
         self.report_path = None
         self.pcb_data = None
         self.all_components = []
-        self.log_window = None # This will be set by the GUI
-        self.tabs = {} # This will be populated with tab instances
+        self.log_window = None  # This will be set by the GUI
+        self.tabs = {}  # This will be populated with tab instances
         
         # Define project root and scripts directory robustly
         self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.scripts_dir = os.path.join(self.project_root, "src", "scripts")
 
-        # For QProcess
-        self.get_edb_process = None
-        self.set_edb_process = None
-        self.set_sim_process = None
-        self.run_sim_process = None
-        self.get_loss_process = None
-        self.generate_report_process = None
+        # External process coordination
+        self.script_runner = ExternalScriptRunner(parent=self)
+        self.script_runner.started.connect(self.on_task_started)
+        self.script_runner.finished.connect(self.on_task_finished)
+        self.script_runner.error.connect(self.on_task_error)
+        self.script_runner.log_message.connect(self.on_task_log_message)
+
+        self.task_contexts = {}
+        self.current_layout_path = None
+        self.current_aedb_path = None
 
     def connect_signals(self, tabs):
         self.tabs = tabs
@@ -68,6 +74,218 @@ class AppController(QObject):
         self.log_window.append(message)
         self.log_window.setTextColor(QColor("black"))
         self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
+
+    # ------------------------------------------------------------------ #
+    # External task coordination helpers
+    # ------------------------------------------------------------------ #
+    def _set_button_running(self, button, text="Running..."):
+        if not button: return
+        button.setEnabled(False)
+        button.setText(text)
+        button.setStyleSheet("background-color: yellow; color: black;")
+
+    def _restore_button(self, button, original_style, text="Apply"):
+        if not button: return
+        button.setEnabled(True)
+        button.setText(text)
+        if original_style:
+            button.setStyleSheet(original_style)
+        else:
+            button.setStyleSheet("")
+
+    def _submit_task(
+        self,
+        command,
+        *,
+        metadata,
+        retries=0,
+        input_path=None,
+        output_path=None,
+        working_dir=None,
+        description=None,
+        env=None,
+    ):
+        try:
+            task_id, _ = self.script_runner.run_task(
+                command,
+                metadata=metadata,
+                retries=retries,
+                input_path=input_path,
+                output_path=output_path,
+                working_dir=working_dir,
+                description=description or metadata.get("description"),
+                env=env,
+            )
+        except Exception as exc:
+            self.log(f"Failed to start external task: {exc}", "red")
+            button = metadata.get("button")
+            self._restore_button(button, metadata.get("button_style"), metadata.get("button_reset_text", "Apply"))
+            return None
+
+        self.task_contexts[task_id] = metadata
+        return task_id
+
+    def run_external_script(
+        self,
+        command,
+        *,
+        metadata,
+        retries=0,
+        input_path=None,
+        output_path=None,
+        working_dir=None,
+        description=None,
+        env=None,
+    ):
+        """Public helper so tabs can enqueue external scripts through the controller."""
+        return self._submit_task(
+            command,
+            metadata=metadata,
+            retries=retries,
+            input_path=input_path,
+            output_path=output_path,
+            working_dir=working_dir,
+            description=description,
+            env=env,
+        )
+
+    def on_task_started(self, task_id, attempt, metadata):
+        metadata["attempt"] = attempt
+
+    def on_task_finished(self, task_id, exit_code, metadata):
+        context = self.task_contexts.pop(task_id, metadata or {})
+        task_type = context.get("type")
+
+        if task_type == "get_edb":
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Get EDB process finished.")
+            layout_path = self.current_layout_path or ""
+            import_tab = self.tabs.get("import_tab")
+            if layout_path.lower().endswith(".brd") and import_tab:
+                new_aedb_path = os.path.splitext(layout_path)[0] + ".aedb"
+                import_tab.layout_path_label.setText(new_aedb_path)
+                self.log(f"Design path has been updated to: {new_aedb_path}")
+            self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
+            self.load_pcb_data()
+
+        elif task_type == "set_edb":
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Set EDB process finished.")
+            if self.current_aedb_path:
+                new_aedb_path = self.current_aedb_path.replace(".aedb", "_applied.aedb")
+                self.log(f"Successfully created {new_aedb_path}")
+
+        elif task_type == "set_sim":
+            self.log("Set simulation process finished.")
+            self.log("Successfully applied simulation settings. Now running simulation...")
+            self._queue_simulation_run(context)
+
+        elif task_type == "run_sim":
+            simulation_tab = self.tabs.get("simulation_tab")
+            result_tab = self.tabs.get("result_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Simulation process finished.")
+            if result_tab:
+                result_tab.project_path_input.setText(self.project_file)
+            self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
+
+        elif task_type == "get_loss":
+            self.log("Successfully got loss data. Generating HTML report...")
+            self.run_generate_report()
+
+        elif task_type == "generate_report":
+            result_tab = self.tabs.get("result_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("HTML report generation finished.")
+            if result_tab and self.report_path:
+                result_tab.html_group.setVisible(True)
+
+    def on_task_error(self, task_id, exit_code, message, metadata):
+        context = self.task_contexts.pop(task_id, metadata or {})
+        task_type = context.get("type")
+        log_message = message or f"Task failed with exit code {exit_code}."
+
+        if task_type == "get_edb":
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Get EDB process finished.")
+            self.log(f"Get EDB process failed with exit code {exit_code}. {log_message}", "red")
+
+        elif task_type == "set_edb":
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Set EDB process finished.")
+            self.log(f"Set EDB process failed with exit code {exit_code}. {log_message}", "red")
+
+        elif task_type == "set_sim":
+            simulation_tab = self.tabs.get("simulation_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Set simulation process finished.")
+            self.log(f"Set simulation process failed with exit code {exit_code}. {log_message}", "red")
+
+        elif task_type == "run_sim":
+            simulation_tab = self.tabs.get("simulation_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Simulation process finished.")
+            self.log(f"Run simulation process failed with exit code {exit_code}. {log_message}", "red")
+
+        elif task_type == "get_loss":
+            result_tab = self.tabs.get("result_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            if result_tab:
+                result_tab.html_group.setVisible(False)
+            self.log(f"Get loss process failed with exit code {exit_code}. {log_message}", "red")
+
+        elif task_type == "generate_report":
+            result_tab = self.tabs.get("result_tab")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            if result_tab:
+                result_tab.html_group.setVisible(False)
+            self.log(f"HTML report generation failed with exit code {exit_code}. {log_message}", "red")
+
+    def on_task_log_message(self, task_id, level, message, metadata):
+        if level == "debug":
+            return
+
+        color = None
+        if level == "error":
+            color = "red"
+        elif level == "warning":
+            color = "orange"
+
+        prefix = metadata.get("description")
+        formatted = f"[{prefix}] {message}" if prefix else message
+
+        self.log(formatted, color)
+
+        if metadata.get("type") == "generate_report" and "HTML report generated at: " in message:
+            result_tab = self.tabs.get("result_tab")
+            self.report_path = message.split("HTML report generated at: ")[1].strip()
+            if result_tab:
+                result_tab.html_path_input.setText(self.report_path)
+
+    def _queue_simulation_run(self, context):
+        simulation_tab = self.tabs.get("simulation_tab")
+        if not simulation_tab or not self.project_file:
+            self.log("Unable to start simulation run: missing project file.", "red")
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            return
+
+        script_path = os.path.join(self.scripts_dir, "run_sim.py")
+        command = [sys.executable, script_path, self.project_file]
+
+        run_metadata = {
+            "type": "run_sim",
+            "description": "Running SIwave simulation",
+            "button": context.get("button") or simulation_tab.apply_simulation_button,
+            "button_style": context.get("button_style") or getattr(simulation_tab, "apply_simulation_button_original_style", ""),
+            "button_reset_text": context.get("button_reset_text", "Apply"),
+        }
+
+        self._submit_task(
+            command,
+            metadata=run_metadata,
+            input_path=self.project_file,
+            description=run_metadata["description"],
+        )
 
     def get_config_path(self):
         return os.path.join(os.path.dirname(__file__), "config.json")
@@ -168,6 +386,7 @@ class AppController(QObject):
             return
         self.project_file = project_file
         result_tab.html_group.setVisible(False)
+        self._set_button_running(result_tab.apply_result_button)
         self.run_get_loss()
 
     def open_report_in_browser(self):
@@ -270,51 +489,38 @@ class AppController(QObject):
         self.current_aedb_path = aedb_path
 
         try:
-            with open(self.project_file, "w") as f: json.dump(project_data, f, indent=2)
+            with open(self.project_file, "w") as f:
+                json.dump(project_data, f, indent=2)
             self.log(f"Successfully saved to {self.project_file}. Now applying to EDB...")
-            
-            port_setup_tab.apply_button.setEnabled(False)
-            port_setup_tab.apply_button.setText("Running...")
-            port_setup_tab.apply_button.setStyleSheet("background-color: yellow; color: black;")
 
+            self._set_button_running(port_setup_tab.apply_button)
             script_path = os.path.join(self.scripts_dir, "set_edb.py")
             python_executable = sys.executable
             edb_version = import_tab.edb_version_input.text()
             command = [python_executable, script_path, self.project_file, edb_version]
-            
-            self.set_edb_process = QProcess()
-            self.set_edb_process.readyReadStandardOutput.connect(self.handle_set_edb_stdout)
-            self.set_edb_process.readyReadStandardError.connect(self.handle_set_edb_stderr)
-            self.set_edb_process.finished.connect(self.set_edb_finished)
-            self.set_edb_process.start(command[0], command[1:])
+
+            metadata = {
+                "type": "set_edb",
+                "description": "Applying port definitions to EDB",
+                "button": port_setup_tab.apply_button,
+                "button_style": getattr(port_setup_tab, "apply_button_original_style", ""),
+                "button_reset_text": "Apply",
+            }
+
+            self._submit_task(
+                command,
+                metadata=metadata,
+                input_path=self.project_file,
+                description=metadata["description"],
+            )
 
         except Exception as e:
             self.log(f"Error during apply: {e}", "red")
-            port_setup_tab.apply_button.setEnabled(True)
-            port_setup_tab.apply_button.setText("Apply")
-            port_setup_tab.apply_button.setStyleSheet("")
-
-    def handle_set_edb_stdout(self):
-        data = self.set_edb_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
-
-    def handle_set_edb_stderr(self):
-        data = self.set_edb_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def set_edb_finished(self):
-        port_setup_tab = self.tabs.get("port_setup_tab")
-        if not port_setup_tab: return
-        self.log("Set EDB process finished.")
-        port_setup_tab.apply_button.setEnabled(True)
-        port_setup_tab.apply_button.setText("Apply")
-        port_setup_tab.apply_button.setStyleSheet("")
-        
-        if self.set_edb_process.exitCode() == 0:
-            new_aedb_path = self.current_aedb_path.replace('.aedb', '_applied.aedb')
-            self.log(f"Successfully created {new_aedb_path}")
-        else:
-            self.log(f"Set EDB process failed with exit code {self.set_edb_process.exitCode()}.", "red")
+            self._restore_button(
+                port_setup_tab.apply_button,
+                getattr(port_setup_tab, "apply_button_original_style", ""),
+                "Apply",
+            )
 
     def open_layout(self):
         import_tab = self.tabs.get("import_tab")
@@ -379,9 +585,7 @@ class AppController(QObject):
             return
 
         self.log(f"Opening layout: {layout_path}")
-        import_tab.apply_import_button.setEnabled(False)
-        import_tab.apply_import_button.setText("Running...")
-        import_tab.apply_import_button.setStyleSheet("background-color: yellow; color: black;")
+        self._set_button_running(import_tab.apply_import_button)
         self.current_layout_path = layout_path
 
         script_path = os.path.join(self.scripts_dir, "get_edb.py")
@@ -390,41 +594,21 @@ class AppController(QObject):
         
         command = [python_executable, script_path, layout_path, edb_version, stackup_path, self.project_file]
         self.log(f"Running command: {' '.join(command)}")
+        metadata = {
+            "type": "get_edb",
+            "description": "Importing layout into EDB",
+            "button": import_tab.apply_import_button,
+            "button_style": getattr(import_tab, "apply_import_button_original_style", ""),
+            "button_reset_text": "Apply",
+        }
 
-        self.get_edb_process = QProcess()
-        self.get_edb_process.readyReadStandardOutput.connect(self.handle_get_edb_stdout)
-        self.get_edb_process.readyReadStandardError.connect(self.handle_get_edb_stderr)
-        self.get_edb_process.finished.connect(self.get_edb_finished)
-        self.get_edb_process.start(command[0], command[1:])
-
-    def handle_get_edb_stdout(self):
-        data = self.get_edb_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
-
-    def handle_get_edb_stderr(self):
-        data = self.get_edb_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def get_edb_finished(self):
-        import_tab = self.tabs.get("import_tab")
-        if not import_tab: return
-        self.log("Get EDB process finished.")
-        import_tab.apply_import_button.setEnabled(True)
-        import_tab.apply_import_button.setText("Apply")
-        import_tab.apply_import_button.setStyleSheet("")
-        exit_code = self.get_edb_process.exitCode()
-
-        if exit_code == 0:
-            layout_path = self.current_layout_path
-            if layout_path.lower().endswith('.brd'):
-                new_aedb_path = os.path.splitext(layout_path)[0] + '.aedb'
-                import_tab.layout_path_label.setText(new_aedb_path)
-                self.log(f"Design path has been updated to: {new_aedb_path}")
-            
-            self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
-            self.load_pcb_data()
-        else:
-            self.log(f"Get EDB process failed with exit code {exit_code}.", "red")
+        self._submit_task(
+            command,
+            metadata=metadata,
+            input_path=layout_path,
+            output_path=self.project_file,
+            description=metadata["description"],
+        )
 
     def load_pcb_data(self):
         port_setup_tab = self.tabs.get("port_setup_tab")
@@ -557,140 +741,92 @@ class AppController(QObject):
             self.log(f"Simulation settings saved to {self.project_file}")
 
             self.log("Applying simulation settings to EDB...")
-            simulation_tab.apply_simulation_button.setEnabled(False)
-            simulation_tab.apply_simulation_button.setText("Running...")
-            simulation_tab.apply_simulation_button.setStyleSheet("background-color: yellow; color: black;")
-
+            self._set_button_running(simulation_tab.apply_simulation_button)
             script_path = os.path.join(self.scripts_dir, "set_sim.py")
             python_executable = sys.executable
             command = [python_executable, script_path, self.project_file]
-            
-            self.set_sim_process = QProcess()
-            self.set_sim_process.readyReadStandardOutput.connect(self.handle_set_sim_stdout)
-            self.set_sim_process.readyReadStandardError.connect(self.handle_set_sim_stderr)
-            self.set_sim_process.finished.connect(self.set_sim_finished)
-            self.set_sim_process.start(command[0], command[1:])
+
+            metadata = {
+                "type": "set_sim",
+                "description": "Applying simulation setup",
+                "button": simulation_tab.apply_simulation_button,
+                "button_style": getattr(simulation_tab, "apply_simulation_button_original_style", ""),
+                "button_reset_text": "Apply",
+            }
+
+            self._submit_task(
+                command,
+                metadata=metadata,
+                input_path=self.project_file,
+                description=metadata["description"],
+            )
 
         except Exception as e:
             self.log(f"Error applying simulation settings: {e}", color="red")
-            simulation_tab.apply_simulation_button.setEnabled(True)
-            simulation_tab.apply_simulation_button.setText("Apply")
-            simulation_tab.apply_simulation_button.setStyleSheet("")
-
-    def handle_set_sim_stdout(self):
-        data = self.set_sim_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
-
-    def handle_set_sim_stderr(self):
-        data = self.set_sim_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def set_sim_finished(self):
-        simulation_tab = self.tabs.get("simulation_tab")
-        if not simulation_tab: return
-        self.log("Set simulation process finished.")
-        if self.set_sim_process.exitCode() == 0:
-            self.log("Successfully applied simulation settings. Now running simulation...")
-            self.run_simulation_script()
-        else:
-            self.log(f"Set simulation process failed with exit code {self.set_sim_process.exitCode()}.", "red")
-            simulation_tab.apply_simulation_button.setEnabled(True)
-            simulation_tab.apply_simulation_button.setText("Apply")
-            simulation_tab.apply_simulation_button.setStyleSheet("")
-
-    def run_simulation_script(self):
-        self.log("Starting simulation...")
-        script_path = os.path.join(self.scripts_dir, "run_sim.py")
-        python_executable = sys.executable
-        command = [python_executable, script_path, self.project_file]
-
-        self.run_sim_process = QProcess()
-        self.run_sim_process.readyReadStandardOutput.connect(self.handle_run_sim_stdout)
-        self.run_sim_process.readyReadStandardError.connect(self.handle_run_sim_stderr)
-        self.run_sim_process.finished.connect(self.run_sim_finished)
-        self.run_sim_process.start(command[0], command[1:])
-
-    def handle_run_sim_stdout(self):
-        data = self.run_sim_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
-
-    def handle_run_sim_stderr(self):
-        data = self.run_sim_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def run_sim_finished(self):
-        simulation_tab = self.tabs.get("simulation_tab")
-        result_tab = self.tabs.get("result_tab")
-        if not simulation_tab or not result_tab: return
-        self.log("Simulation process finished.")
-        simulation_tab.apply_simulation_button.setEnabled(True)
-        simulation_tab.apply_simulation_button.setText("Apply")
-        simulation_tab.apply_simulation_button.setStyleSheet("")
-        if self.run_sim_process.exitCode() == 0:
-            self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
-            result_tab.project_path_input.setText(self.project_file)
-        else:
-            self.log(f"Run simulation process failed with exit code {self.run_sim_process.exitCode()}.", "red")
+            self._restore_button(
+                simulation_tab.apply_simulation_button,
+                getattr(simulation_tab, "apply_simulation_button_original_style", ""),
+                "Apply",
+            )
 
     def run_get_loss(self):
-        self.log("Getting loss data...")
+        if not self.project_file or not os.path.exists(self.project_file):
+            result_tab = self.tabs.get("result_tab")
+            self.log("Project file not set. Cannot retrieve loss data.", "red")
+            if result_tab:
+                self._restore_button(
+                    result_tab.apply_result_button,
+                    getattr(result_tab, "apply_result_button_original_style", ""),
+                    "Apply",
+                )
+            return
+
+        result_tab = self.tabs.get("result_tab")
+        metadata = {
+            "type": "get_loss",
+            "description": "Collecting SIwave loss data",
+            "button": result_tab.apply_result_button if result_tab else None,
+            "button_style": getattr(result_tab, "apply_result_button_original_style", "") if result_tab else "",
+            "button_reset_text": "Apply",
+        }
+
         script_path = os.path.join(self.scripts_dir, "get_loss.py")
-        python_executable = sys.executable
-        command = [python_executable, script_path, self.project_file]
+        command = [sys.executable, script_path, self.project_file]
 
-        self.get_loss_process = QProcess()
-        self.get_loss_process.readyReadStandardOutput.connect(self.handle_get_loss_stdout)
-        self.get_loss_process.readyReadStandardError.connect(self.handle_get_loss_stderr)
-        self.get_loss_process.finished.connect(self.get_loss_finished)
-        self.get_loss_process.start(command[0], command[1:])
-
-    def handle_get_loss_stdout(self):
-        data = self.get_loss_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line)
-
-    def handle_get_loss_stderr(self):
-        data = self.get_loss_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def get_loss_finished(self):
-        if self.get_loss_process.exitCode() == 0:
-            self.log("Successfully got loss data. Generating HTML report...")
-            self.run_generate_report()
-        else:
-            self.log(f"Get loss process failed with exit code {self.get_loss_process.exitCode()}.", "red")
+        self._submit_task(
+            command,
+            metadata=metadata,
+            input_path=self.project_file,
+            description=metadata["description"],
+        )
 
     def run_generate_report(self):
-        self.log("Generating HTML report...")
+        if not self.project_file or not os.path.exists(self.project_file):
+            result_tab = self.tabs.get("result_tab")
+            self.log("Project file not set. Cannot generate report.", "red")
+            if result_tab:
+                self._restore_button(
+                    result_tab.apply_result_button,
+                    getattr(result_tab, "apply_result_button_original_style", ""),
+                    "Apply",
+                )
+            return
+
+        result_tab = self.tabs.get("result_tab")
+        metadata = {
+            "type": "generate_report",
+            "description": "Generating HTML report",
+            "button": result_tab.apply_result_button if result_tab else None,
+            "button_style": getattr(result_tab, "apply_result_button_original_style", "") if result_tab else "",
+            "button_reset_text": "Apply",
+        }
+
         script_path = os.path.join(self.scripts_dir, "generate_report.py")
-        python_executable = sys.executable
-        command = [python_executable, script_path, self.project_file]
+        command = [sys.executable, script_path, self.project_file]
 
-        self.generate_report_process = QProcess()
-        self.generate_report_process.readyReadStandardOutput.connect(self.handle_generate_report_stdout)
-        self.generate_report_process.readyReadStandardError.connect(self.handle_generate_report_stderr)
-        self.generate_report_process.finished.connect(self.generate_report_finished)
-        self.generate_report_process.start(command[0], command[1:])
-
-    def handle_generate_report_stdout(self):
-        result_tab = self.tabs.get("result_tab")
-        if not result_tab: return
-        data = self.generate_report_process.readAllStandardOutput().data().decode(errors='ignore').strip()
-        for line in data.splitlines():
-            self.log(line)
-            if "HTML report generated at: " in line:
-                self.report_path = line.split("HTML report generated at: ")[1].strip()
-                result_tab.html_path_input.setText(self.report_path)
-
-    def handle_generate_report_stderr(self):
-        data = self.generate_report_process.readAllStandardError().data().decode(errors='ignore').strip()
-        for line in data.splitlines(): self.log(line, color="red")
-
-    def generate_report_finished(self):
-        result_tab = self.tabs.get("result_tab")
-        if not result_tab: return
-        if self.generate_report_process.exitCode() == 0:
-            self.log("HTML report generation finished.")
-            if self.report_path:
-                result_tab.html_group.setVisible(True)
-        else:
-            self.log(f"HTML report generation failed with exit code {self.generate_report_process.exitCode()}.", "red")
+        self._submit_task(
+            command,
+            metadata=metadata,
+            input_path=self.project_file,
+            description=metadata["description"],
+        )
