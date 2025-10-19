@@ -22,7 +22,7 @@ try:
     info["touchstone_path"] = touchstone_path
     
     with open(project_file, "w") as f:
-        json.dump(info, f, indent=2)
+        json.dump(info, f, indent=3)
 
 except:
     raise

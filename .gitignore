@@ -1,2 +1,3 @@
 /.venv
 /temp
+/src/__pycache__
