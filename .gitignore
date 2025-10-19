@@ -1,3 +1,8 @@
-/.venv
-/temp
-/src/__pycache__
+# virtual environments
+.venv/
+temp/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class

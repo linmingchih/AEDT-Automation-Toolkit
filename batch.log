@@ -3280,3 +3280,76 @@ Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
 [info] Project:Project483, Design:Circuit Design_G64, (info): Starting analysis type LNA. (03:00:25 PM  Oct 19, 2025)
 [info] Project:Project483, Design:Circuit Design_G64, (info): Simulation succeeded. Total simulator time: 0:00:00 (03:00:26 PM  Oct 19, 2025)
 Stopping Batch Run: 3:00:45 PM  Oct 19, 2025
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 3:54:46 PM  Oct 19, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 49731.
+
+[info] Project:pcb, Design:pcb, siwave_ng 2025 R1 (Built: Nov 30 2024 15:51:52) (03:55:00 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_M_CLK0"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_RX0"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_TX0"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REF1"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REFCLK0"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_RD"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_TD"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD1"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD2"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD3"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD4"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD5"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D_CH"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH1_D"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D_CH"; both + and - net names are empty.  (03:55:01 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" started on host AAPVHWVMVEUGTEC at Sun Oct 19 15:55:01 2025 (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, [Simulation Directory]: "C:/Users/mlin/AppData/Local/Temp/ens_temp_3724.pjt/" (03:55:02 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_000" has a thickness of 0 mm and will be ignored (03:55:02 PM  Oct 19, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_012" has a thickness of 0 mm and will be ignored (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, GND (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<0> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<1> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<2> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<3> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<4> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<5> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<6> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<7> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<8> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<9> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<10> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<11> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<12> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<13> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<14> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<15> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQS<0> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQS<1> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQS_N<0> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, M_DQS_N<1> (03:55:02 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, SYZ solver completed with return code 0 (03:55:12 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" completed on host AAPVHWVMVEUGTEC at Sun Oct 19 15:55:11 2025 (03:55:12 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, Saved "C:/Users/mlin/AppData/Local/Temp/ens_temp_3724.pjt/pcb.siw" (03:55:12 PM  Oct 19, 2025)
+[info] Project:pcb, Design:pcb, Touchstone export: Writing to "D:/OneDrive - ANSYS, Inc/a-client-repositories/lmz-siwave-SI-2025-10-17/SI Automation Flow/temp/pcb_20251019_155213/model.s40p" (03:55:15 PM  Oct 19, 2025)
+Stopping Batch Run: 3:55:25 PM  Oct 19, 2025
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 3:55:40 PM  Oct 19, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 51150.
+
+[info] Project:Project485, Design:Circuit Design_719, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (03:55:48 PM  Oct 19, 2025)
+[info] Project:Project485, Design:Circuit Design_719, (info): Processing circuit for new analysis. (03:55:49 PM  Oct 19, 2025)
+[info] Project:Project485, Design:Circuit Design_719, (info): Starting analysis type LNA. (03:55:49 PM  Oct 19, 2025)
+[info] Project:Project485, Design:Circuit Design_719, (info): Simulation succeeded. Total simulator time: 0:00:00 (03:55:49 PM  Oct 19, 2025)
+Stopping Batch Run: 3:56:13 PM  Oct 19, 2025

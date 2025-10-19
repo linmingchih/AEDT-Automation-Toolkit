@@ -14,18 +14,18 @@
       [
         "linear count",
         "0",
-        "1kHz",
-        "3"
+        "1Hz",
+        "1"
       ],
       [
         "log scale",
-        "1kHz",
-        "0.1GHz",
+        "1Hz",
+        "100MHz",
         "10"
       ],
       [
         "linear scale",
-        "0.1GHz",
+        "100MHz",
         "10GHz",
         "0.1GHz"
       ]
