@@ -1,3 +1,7 @@
+import os
+import sys
+import webbrowser
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -6,6 +10,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLineEdit,
     QGroupBox,
+    QFileDialog,
 )
 from PySide6.QtCore import Qt
 
@@ -47,3 +52,99 @@ class ResultTab(QWidget):
         self.html_group.setVisible(False)
         
         result_layout.addStretch()
+
+    def bind_to_controller(self):
+        self.browse_project_button.clicked.connect(self.browse_project_file)
+        self.apply_result_button.clicked.connect(self.run_post_processing)
+        self.open_html_button.clicked.connect(self.open_report_in_browser)
+
+    def browse_project_file(self):
+        path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select project.json file",
+            "",
+            "JSON files (*.json)",
+        )
+        if path:
+            self.project_path_input.setText(path)
+
+    def run_post_processing(self):
+        controller = self.controller
+        project_file = self.project_path_input.text()
+        if not project_file or not os.path.exists(project_file):
+            controller.log("Please select a valid project.json file.", "red")
+            return
+
+        controller.project_file = project_file
+        self.html_group.setVisible(False)
+        controller._set_button_running(self.apply_result_button)
+        self.run_get_loss()
+
+    def open_report_in_browser(self):
+        controller = self.controller
+        if controller.report_path and os.path.exists(controller.report_path):
+            try:
+                webbrowser.open(f"file:///{os.path.abspath(controller.report_path)}")
+                controller.log(f"Opening {controller.report_path} in browser.")
+            except Exception as exc:
+                controller.log(f"Could not open report in browser: {exc}", "red")
+        else:
+            controller.log("Report path not found or invalid.", "red")
+
+    def run_get_loss(self):
+        controller = self.controller
+        if not controller.project_file or not os.path.exists(controller.project_file):
+            controller.log("Project file not set. Cannot retrieve loss data.", "red")
+            controller._restore_button(
+                self.apply_result_button,
+                getattr(self, "apply_result_button_original_style", ""),
+                "Apply",
+            )
+            return
+
+        metadata = {
+            "type": "get_loss",
+            "description": "Collecting SIwave loss data",
+            "button": self.apply_result_button,
+            "button_style": getattr(self, "apply_result_button_original_style", ""),
+            "button_reset_text": "Apply",
+        }
+
+        script_path = os.path.join(controller.scripts_dir, "get_loss.py")
+        command = [sys.executable, script_path, controller.project_file]
+
+        controller._submit_task(
+            command,
+            metadata=metadata,
+            input_path=controller.project_file,
+            description=metadata["description"],
+        )
+
+    def run_generate_report(self):
+        controller = self.controller
+        if not controller.project_file or not os.path.exists(controller.project_file):
+            controller.log("Project file not set. Cannot generate report.", "red")
+            controller._restore_button(
+                self.apply_result_button,
+                getattr(self, "apply_result_button_original_style", ""),
+                "Apply",
+            )
+            return
+
+        metadata = {
+            "type": "generate_report",
+            "description": "Generating HTML report",
+            "button": self.apply_result_button,
+            "button_style": getattr(self, "apply_result_button_original_style", ""),
+            "button_reset_text": "Apply",
+        }
+
+        script_path = os.path.join(controller.scripts_dir, "generate_report.py")
+        command = [sys.executable, script_path, controller.project_file]
+
+        controller._submit_task(
+            command,
+            metadata=metadata,
+            input_path=controller.project_file,
+            description=metadata["description"],
+        )

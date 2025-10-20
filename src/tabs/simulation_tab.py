@@ -1,3 +1,7 @@
+import json
+import os
+import sys
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -107,3 +111,95 @@ class SimulationTab(QWidget):
 
         for row in sorted(list(rows_to_remove), reverse=True):
             self.sweeps_table.removeRow(row)
+
+    def bind_to_controller(self):
+        self.apply_simulation_button.clicked.connect(self.apply_simulation_settings)
+
+    def apply_simulation_settings(self):
+        controller = self.controller
+        import_tab = controller.tabs.get("import_tab")
+        if not import_tab:
+            return
+
+        signal_nets_text = self.signal_nets_label.text()
+        if not signal_nets_text or signal_nets_text == "(not set)":
+            controller.log(
+                "Signal nets are not defined. Please complete the 'Port Setup' tab first.",
+                "red",
+            )
+            return
+
+        aedb_path = import_tab.layout_path_label.text()
+        if not os.path.isdir(aedb_path):
+            controller.log("Please open an .aedb project first.", "red")
+            return
+
+        project_data = {"app_name": controller.app_name}
+        if controller.project_file and os.path.exists(controller.project_file):
+            with open(controller.project_file, "r") as handle:
+                project_data.update(json.load(handle))
+
+        sweeps = []
+        for row in range(self.sweeps_table.rowCount()):
+            sweeps.append(
+                [
+                    self.sweeps_table.cellWidget(row, 0).currentText(),
+                    self.sweeps_table.item(row, 1).text(),
+                    self.sweeps_table.item(row, 2).text(),
+                    self.sweeps_table.item(row, 3).text(),
+                ]
+            )
+
+        project_data.update(
+            {
+                "aedb_path": aedb_path,
+                "edb_version": import_tab.edb_version_input.text(),
+                "cutout": {
+                    "enabled": self.enable_cutout_checkbox.isChecked(),
+                    "expansion_size": self.expansion_size_input.text(),
+                    "signal_nets": self.signal_nets_label.text().split(", "),
+                    "reference_net": [self.reference_net_label.text()],
+                },
+                "solver": "SIwave",
+                "solver_version": self.siwave_version_input.text(),
+                "frequency_sweeps": sweeps,
+            }
+        )
+
+        try:
+            with open(controller.project_file, "w") as handle:
+                json.dump(project_data, handle, indent=2)
+            controller.log(
+                f"Simulation settings saved to {controller.project_file}"
+            )
+
+            controller.log("Applying simulation settings to EDB...")
+            controller._set_button_running(self.apply_simulation_button)
+            script_path = os.path.join(controller.scripts_dir, "set_sim.py")
+            python_executable = sys.executable
+            command = [python_executable, script_path, controller.project_file]
+
+            metadata = {
+                "type": "set_sim",
+                "description": "Applying simulation setup",
+                "button": self.apply_simulation_button,
+                "button_style": getattr(
+                    self, "apply_simulation_button_original_style", ""
+                ),
+                "button_reset_text": "Apply",
+            }
+
+            controller._submit_task(
+                command,
+                metadata=metadata,
+                input_path=controller.project_file,
+                description=metadata["description"],
+            )
+
+        except Exception as exc:
+            controller.log(f"Error applying simulation settings: {exc}", color="red")
+            controller._restore_button(
+                self.apply_simulation_button,
+                getattr(self, "apply_simulation_button_original_style", ""),
+                "Apply",
+            )
