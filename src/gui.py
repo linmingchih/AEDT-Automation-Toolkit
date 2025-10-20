@@ -16,7 +16,7 @@ from PySide6.QtGui import QAction
 class MainApplicationWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SI Simulation Toolkit")
+        self.setWindowTitle("AEDT Automation Toolkit")
         self.setGeometry(100, 100, 1200, 800)
 
         self.current_controller = None
