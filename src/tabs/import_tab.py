@@ -158,7 +158,8 @@ class ImportTab(QWidget):
         controller._set_button_running(self.apply_import_button)
         controller.current_layout_path = layout_path
 
-        script_path = os.path.join(controller.scripts_dir, "get_edb.py")
+        action_spec = controller.get_action_spec("get_edb", tab_name="import_tab")
+        script_path = action_spec["script"]
         python_executable = sys.executable
         edb_version = self.edb_version_input.text()
 
@@ -170,6 +171,8 @@ class ImportTab(QWidget):
             stackup_path,
             controller.project_file,
         ]
+        if action_spec.get("args"):
+            command.extend(action_spec["args"])
         controller.log(f"Running command: {' '.join(command)}")
         metadata = {
             "type": "get_edb",
@@ -187,4 +190,6 @@ class ImportTab(QWidget):
             input_path=layout_path,
             output_path=controller.project_file,
             description=metadata["description"],
+            working_dir=action_spec.get("working_dir"),
+            env=action_spec.get("env"),
         )

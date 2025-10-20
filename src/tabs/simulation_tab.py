@@ -175,9 +175,12 @@ class SimulationTab(QWidget):
 
             controller.log("Applying simulation settings to EDB...")
             controller._set_button_running(self.apply_simulation_button)
-            script_path = os.path.join(controller.scripts_dir, "set_sim.py")
+            action_spec = controller.get_action_spec("set_sim", tab_name="simulation_tab")
+            script_path = action_spec["script"]
             python_executable = sys.executable
             command = [python_executable, script_path, controller.project_file]
+            if action_spec.get("args"):
+                command.extend(action_spec["args"])
 
             metadata = {
                 "type": "set_sim",
@@ -194,6 +197,8 @@ class SimulationTab(QWidget):
                 metadata=metadata,
                 input_path=controller.project_file,
                 description=metadata["description"],
+                working_dir=action_spec.get("working_dir"),
+                env=action_spec.get("env"),
             )
 
         except Exception as exc:

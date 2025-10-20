@@ -446,7 +446,8 @@ class PortSetupTab(QWidget):
             )
 
             controller._set_button_running(self.apply_button)
-            script_path = os.path.join(controller.scripts_dir, "set_edb.py")
+            action_spec = controller.get_action_spec("set_edb", tab_name="port_setup_tab")
+            script_path = action_spec["script"]
             python_executable = sys.executable
             edb_version = import_tab.edb_version_input.text()
             command = [
@@ -455,6 +456,8 @@ class PortSetupTab(QWidget):
                 controller.project_file,
                 edb_version,
             ]
+            if action_spec.get("args"):
+                command.extend(action_spec["args"])
 
             metadata = {
                 "type": "set_edb",
@@ -469,6 +472,8 @@ class PortSetupTab(QWidget):
                 metadata=metadata,
                 input_path=controller.project_file,
                 description=metadata["description"],
+                working_dir=action_spec.get("working_dir"),
+                env=action_spec.get("env"),
             )
 
         except Exception as exc:

@@ -6,6 +6,22 @@
     "simulation_tab",
     "result_tab"
   ],
+  "actions": {
+    "import_tab": {
+      "get_edb": "get_edb.py"
+    },
+    "port_setup_tab": {
+      "set_edb": "set_edb.py"
+    },
+    "simulation_tab": {
+      "set_sim": "set_sim.py",
+      "run_sim": "run_sim.py"
+    },
+    "result_tab": {
+      "get_loss": "get_loss.py",
+      "generate_report": "generate_report.py"
+    }
+  },
   "settings": {
     "cutout_enabled": true,
     "expansion_size": "0.005000",

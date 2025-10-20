@@ -110,14 +110,19 @@ class ResultTab(QWidget):
             "button_reset_text": "Apply",
         }
 
-        script_path = os.path.join(controller.scripts_dir, "get_loss.py")
+        action_spec = controller.get_action_spec("get_loss", tab_name="result_tab")
+        script_path = action_spec["script"]
         command = [sys.executable, script_path, controller.project_file]
+        if action_spec.get("args"):
+            command.extend(action_spec["args"])
 
         controller._submit_task(
             command,
             metadata=metadata,
             input_path=controller.project_file,
             description=metadata["description"],
+            working_dir=action_spec.get("working_dir"),
+            env=action_spec.get("env"),
         )
 
     def run_generate_report(self):
@@ -139,12 +144,17 @@ class ResultTab(QWidget):
             "button_reset_text": "Apply",
         }
 
-        script_path = os.path.join(controller.scripts_dir, "generate_report.py")
+        action_spec = controller.get_action_spec("generate_report", tab_name="result_tab")
+        script_path = action_spec["script"]
         command = [sys.executable, script_path, controller.project_file]
+        if action_spec.get("args"):
+            command.extend(action_spec["args"])
 
         controller._submit_task(
             command,
             metadata=metadata,
             input_path=controller.project_file,
             description=metadata["description"],
+            working_dir=action_spec.get("working_dir"),
+            env=action_spec.get("env"),
         )

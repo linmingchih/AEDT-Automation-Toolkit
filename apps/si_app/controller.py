@@ -16,6 +16,7 @@ class AppController(QObject):
         self.pcb_data = None
         self.log_window = None  # This will be set by the GUI
         self.tabs = {}  # This will be populated with tab instances
+        self.actions_config = {}
         
         # Define project root and scripts directory robustly
         self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -96,6 +97,61 @@ class AppController(QObject):
 
         self.task_contexts[task_id] = metadata
         return task_id
+
+    def _resolve_relative_path(self, path):
+        if not path:
+            return path
+        if os.path.isabs(path):
+            return os.path.normpath(path)
+        return os.path.normpath(os.path.join(self.project_root, path))
+
+    def get_action_spec(self, action, *, tab_name=None):
+        """Return script metadata for a given action, falling back to default scripts directory."""
+        spec = None
+        if tab_name:
+            tab_actions = self.actions_config.get(tab_name)
+            if isinstance(tab_actions, dict):
+                spec = tab_actions.get(action)
+        if spec is None:
+            spec = self.actions_config.get(action)
+
+        if spec is None:
+            spec = {"script": f"{action}.py"}
+        elif isinstance(spec, str):
+            spec = {"script": spec}
+        else:
+            spec = dict(spec)
+
+        script_path = spec.get("script")
+        if not script_path:
+            script_path = f"{action}.py"
+
+        base_dir = spec.get("base_dir")
+        if os.path.isabs(script_path):
+            resolved_script = os.path.normpath(script_path)
+        elif base_dir:
+            resolved_base = self._resolve_relative_path(base_dir)
+            resolved_script = os.path.normpath(os.path.join(resolved_base, script_path))
+        else:
+            resolved_script = os.path.normpath(os.path.join(self.scripts_dir, script_path))
+        spec["script"] = resolved_script
+
+        working_dir = spec.get("working_dir")
+        if working_dir:
+            spec["working_dir"] = self._resolve_relative_path(working_dir)
+
+        args = spec.get("args")
+        if args is not None:
+            if isinstance(args, (str, bytes)):
+                spec["args"] = [str(args)]
+            else:
+                spec["args"] = [str(item) for item in args]
+
+        env = spec.get("env")
+        if env and isinstance(env, dict):
+            spec["env"] = {str(key): str(value) for key, value in env.items()}
+
+        return spec
 
     def run_external_script(
         self,
@@ -245,8 +301,11 @@ class AppController(QObject):
             self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
             return
 
-        script_path = os.path.join(self.scripts_dir, "run_sim.py")
+        action_spec = self.get_action_spec("run_sim", tab_name="simulation_tab")
+        script_path = action_spec["script"]
         command = [sys.executable, script_path, self.project_file]
+        if action_spec.get("args"):
+            command.extend(action_spec["args"])
 
         run_metadata = {
             "type": "run_sim",
@@ -261,6 +320,8 @@ class AppController(QObject):
             metadata=run_metadata,
             input_path=self.project_file,
             description=run_metadata["description"],
+            working_dir=action_spec.get("working_dir"),
+            env=action_spec.get("env"),
         )
 
     def get_config_path(self):
@@ -299,6 +360,12 @@ class AppController(QObject):
                     defaults = json.load(f)
             except (json.JSONDecodeError, OSError) as e:
                 self.log(f"Could not load default config: {e}", "orange")
+
+        actions = defaults.get("actions") if isinstance(defaults, dict) else None
+        if isinstance(actions, dict):
+            self.actions_config = actions
+        else:
+            self.actions_config = {}
 
         if simulation_tab and defaults.get("settings"):
             self._apply_simulation_settings_to_tab(simulation_tab, defaults.get("settings", {}))
