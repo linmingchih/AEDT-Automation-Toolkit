@@ -32,6 +32,11 @@ class MainApplicationWindow(QMainWindow):
         # --- Menu Bar ---
         menu_bar = self.menuBar()
         self.apps_menu = menu_bar.addMenu("Apps")
+        self.options_menu = menu_bar.addMenu("Options")
+
+        self.help_action = QAction("Help", self, checkable=True)
+        self.help_action.toggled.connect(self.toggle_help_tab)
+        self.options_menu.addAction(self.help_action)
 
         # Tabs
         self.tabs = QTabWidget()
@@ -152,10 +157,44 @@ class MainApplicationWindow(QMainWindow):
                 if hasattr(self.current_controller, "load_config"):
                     self.current_controller.load_config()
 
+                if self.help_action.isChecked():
+                    self.toggle_help_tab(True)
+
         except Exception as e:
             self._update_window_title()
             self.log_window.setText(f"Error loading tabs for '{app_name}': {e}")
             return
+
+    def toggle_help_tab(self, enabled):
+        """Shows or hides the help tab for the current application."""
+        HELP_TAB_NAME = "Help"
+        # First, remove any existing help tab to ensure a clean state
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) == HELP_TAB_NAME:
+                self.tabs.removeTab(i)
+                break
+
+        if not enabled:
+            return
+
+        if not self.current_controller:
+            return
+
+        app_name = self.current_controller.app_name
+        app_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "apps", app_name)
+        help_file = os.path.join(app_path, "help.md")
+
+        if not os.path.exists(help_file):
+            return
+
+        try:
+            from tabs.help import HelpTab
+            help_tab = HelpTab(self.current_controller)
+            help_tab.load_help_content(help_file)
+            self.tabs.addTab(help_tab, HELP_TAB_NAME)
+            self.tabs.setCurrentIndex(self.tabs.count() - 1)
+        except Exception as e:
+            self.log_window.append(f"Could not load help tab: {e}")
 
     def closeEvent(self, event):
         if self.current_controller and hasattr(self.current_controller, "save_config"):
