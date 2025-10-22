@@ -68,6 +68,7 @@ class CctTab(QWidget):
         self._field_widgets = {}
         self.setup_ui()
         self._apply_settings_to_inputs({})
+        self._clear_port_table()
 
     # ------------------------------------------------------------------ #
     # UI setup
@@ -109,6 +110,10 @@ class CctTab(QWidget):
         self.port_table.setSelectionMode(QAbstractItemView.NoSelection)
         self.port_table.setAlternatingRowColors(True)
         port_layout.addWidget(self.port_table)
+        self.port_status_label = QLabel("Port setup not yet applied.")
+        self.port_status_label.setAlignment(Qt.AlignLeft)
+        self.port_status_label.setWordWrap(True)
+        port_layout.addWidget(self.port_status_label)
         layout.addWidget(port_group)
 
         buttons_layout = QHBoxLayout()
@@ -254,6 +259,10 @@ class CctTab(QWidget):
             return
 
         ports = project_data.get("ports") or []
+        ports_ready = bool(project_data.get("cct_ports_ready"))
+        if not ports_ready:
+            controller.log("Port setup has not been applied yet. Complete the Port Setup tab before running CCT.", "red")
+            return
         if not ports:
             controller.log("No port definitions found in project.json. Complete the Port Setup tab before running CCT.", "red")
             return
@@ -283,7 +292,7 @@ class CctTab(QWidget):
             return
 
         controller.project_file = project_path
-        self.populate_port_table(ports)
+        self._update_port_information(True, ports)
         controller.log(f"CCT settings saved to {project_path}")
 
         self._start_cct_process(project_path)
@@ -338,11 +347,15 @@ class CctTab(QWidget):
         self.touchstone_path_input.setText(touchstone_path)
 
         self._apply_settings_to_inputs(project_data.get("cct_settings") or {})
-        self.populate_port_table(project_data.get("ports") or [])
+        ports = project_data.get("ports") or []
+        ports_ready = bool(project_data.get("cct_ports_ready"))
+        self._update_port_information(ports_ready, ports)
 
     def populate_port_table(self, ports):
         rows = self._build_port_rows(ports or [])
         self.port_table.setSortingEnabled(False)
+        self.port_table.setColumnCount(5)
+        self.port_table.setHorizontalHeaderLabels(["#", "TX Port", "RX Port", "Type", "Pair"])
         self.port_table.setRowCount(len(rows))
 
         columns = ["index", "tx", "rx", "type", "pair"]
@@ -353,6 +366,20 @@ class CctTab(QWidget):
                 self.port_table.setItem(row_index, col_index, item)
 
         self.port_table.setSortingEnabled(True)
+        self.port_status_label.setText(f"Loaded {len(rows)} port entries.")
+
+    def _clear_port_table(self):
+        self.port_table.setSortingEnabled(False)
+        self.port_table.clearContents()
+        self.port_table.setRowCount(0)
+        self.port_table.setSortingEnabled(True)
+        self.port_status_label.setText("Port setup not yet applied.")
+
+    def _update_port_information(self, ports_ready, ports):
+        if not ports_ready:
+            self._clear_port_table()
+            return
+        self.populate_port_table(ports)
 
     # ------------------------------------------------------------------ #
     # Internal helpers

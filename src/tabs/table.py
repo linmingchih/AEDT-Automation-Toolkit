@@ -31,7 +31,7 @@ class Table(QWidget):
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        source_group = QGroupBox("CCT Result")
+        source_group = QGroupBox("CSV Path")
         source_layout = QHBoxLayout(source_group)
         source_layout.addWidget(QLabel("CSV Path:"))
         self.csv_path_input = QLineEdit()

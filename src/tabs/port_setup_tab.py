@@ -439,6 +439,7 @@ class PortSetupTab(QWidget):
         controller.current_aedb_path = aedb_path
 
         try:
+            project_data["cct_ports_ready"] = bool(project_data["ports"])
             with open(controller.project_file, "w") as handle:
                 json.dump(project_data, handle, indent=2)
             controller.log(

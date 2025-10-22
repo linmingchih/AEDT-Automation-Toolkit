@@ -40,6 +40,9 @@ if os.path.exists(project_file):
         project_data = json.load(f)
 
 project_data["pcb_data"] = info
+project_data["ports"] = []
+project_data["cct_ports_ready"] = False
+project_data.pop("cct_path", None)
 
 os.makedirs(os.path.dirname(project_file), exist_ok=True)
 with open(project_file, 'w') as f:
