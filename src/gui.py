@@ -14,9 +14,11 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 
 class MainApplicationWindow(QMainWindow):
+    BASE_TITLE = "AEDT Automation Toolkit"
+
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AEDT Automation Toolkit")
+        self._update_window_title()
         self.setGeometry(100, 100, 1200, 800)
 
         self.current_controller = None
@@ -78,6 +80,10 @@ class MainApplicationWindow(QMainWindow):
                         action = QAction(display_name, self)
                         action.triggered.connect(partial(self.switch_app, app_name))
                         self.apps_menu.addAction(action)
+                        self.apps[app_name] = {
+                            "display_name": display_name,
+                            "config_path": config_path,
+                        }
 
                 except Exception as e:
                     print(f"Could not load app '{app_name}': {e}")
@@ -91,6 +97,7 @@ class MainApplicationWindow(QMainWindow):
 
         # Clear existing tabs
         self.tabs.clear()
+        self._update_window_title()
 
         # Dynamically import and instantiate the controller
         try:
@@ -113,10 +120,18 @@ class MainApplicationWindow(QMainWindow):
         # Load app config and create tabs
         app_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "apps", app_name)
         config_path = os.path.join(app_path, "config.json")
-        
+        app_meta = self.apps.get(app_name, {})
+
         try:
             with open(config_path, "r") as f:
                 config = json.load(f)
+                display_name = config.get("display_name", app_meta.get("display_name", app_name))
+                app_meta.update({
+                    "display_name": display_name,
+                    "config_path": config_path,
+                })
+                self.apps[app_name] = app_meta
+                self._update_window_title(display_name)
                 tab_names = config.get("tabs", [])
                 
                 loaded_tabs = {}
@@ -138,12 +153,20 @@ class MainApplicationWindow(QMainWindow):
                     self.current_controller.load_config()
 
         except Exception as e:
+            self._update_window_title()
             self.log_window.setText(f"Error loading tabs for '{app_name}': {e}")
+            return
 
     def closeEvent(self, event):
         if self.current_controller and hasattr(self.current_controller, "save_config"):
             self.current_controller.save_config()
         super().closeEvent(event)
+
+    def _update_window_title(self, app_display_name=None):
+        if app_display_name:
+            self.setWindowTitle(f"{self.BASE_TITLE} - {app_display_name}")
+        else:
+            self.setWindowTitle(self.BASE_TITLE)
 
     def apply_styles(self):
         self.setStyleSheet("""
