@@ -20,6 +20,9 @@ if xml_path:
     edb.stackup.load(xml_path)
     edb.save()
 
+xml_path = edb.edbpath.replace('.aedb', '.xml')
+edb.stackup.export(xml_path)
+
 #%%
 info = {}
 info['component'] = defaultdict(list)
@@ -39,6 +42,7 @@ if os.path.exists(project_file):
     with open(project_file, "r") as f:
         project_data = json.load(f)
 
+project_data['xml_path'] = xml_path
 project_data["pcb_data"] = info
 project_data["ports"] = []
 project_data["cct_ports_ready"] = False
