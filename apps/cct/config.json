@@ -1,0 +1,45 @@
+{
+  "display_name": "CCT Flow",
+  "tabs": [
+    "import_tab",
+    "port_setup_tab",
+    "simulation_tab"
+  ],
+  "actions": {
+    "import_tab": {
+      "get_edb": "get_edb.py"
+    },
+    "port_setup_tab": {
+      "set_edb": "set_edb.py"
+    },
+    "simulation_tab": {
+      "set_sim": "set_sim.py",
+      "run_sim": "run_sim.py"
+    }
+  },
+  "settings": {
+    "cutout_enabled": true,
+    "expansion_size": "0.005000",
+    "siwave_version": "2025.1",
+    "frequency_sweeps": [
+      [
+        "linear count",
+        "0",
+        "1Hz",
+        "1"
+      ],
+      [
+        "log scale",
+        "1Hz",
+        "100MHz",
+        "10"
+      ],
+      [
+        "linear scale",
+        "100MHz",
+        "10GHz",
+        "0.1GHz"
+      ]
+    ]
+  }
+}
