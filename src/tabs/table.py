@@ -46,7 +46,6 @@ class Table(QWidget):
         self.table = QTableWidget(0, 0)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         layout.addWidget(self.table)
 
         self.status_label = QLabel("No data loaded.")
@@ -128,8 +127,6 @@ class Table(QWidget):
         self.table.setSortingEnabled(False)
         self.table.setColumnCount(len(headers))
         self.table.setHorizontalHeaderLabels(headers)
-        for column in range(len(headers)):
-            self.table.horizontalHeader().setSectionResizeMode(column, QHeaderView.Stretch)
 
         self.table.setRowCount(len(data_rows))
         for r_idx, row in enumerate(data_rows):
@@ -137,6 +134,13 @@ class Table(QWidget):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 self.table.setItem(r_idx, c_idx, item)
+
+        self.table.resizeColumnsToContents()
+        header = self.table.horizontalHeader()
+        for i in range(header.count()):
+            header.setSectionResizeMode(i, QHeaderView.Interactive)
+        if header.count() > 0:
+            header.setSectionResizeMode(header.count() - 1, QHeaderView.Stretch)
 
         self.table.setSortingEnabled(True)
         self.status_label.setText(f"Loaded {len(data_rows)} rows from {os.path.basename(csv_path)}.")
