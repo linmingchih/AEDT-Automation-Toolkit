@@ -3879,3 +3879,108 @@ Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
 [info] Project:Project489, Design:Circuit Design_A9M, (info): Starting analysis type TRAN. (09:57:23 AM  Oct 22, 2025)
 [info] Project:Project489, Design:Circuit Design_A9M, (info): Simulation succeeded. Total simulator time: 0:00:00 (09:57:23 AM  Oct 22, 2025)
 Stopping Batch Run: 9:57:34 AM  Oct 22, 2025
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 10:12:01 AM  Oct 22, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 54814.
+
+[info] Project:pcb, Design:pcb, siwave_ng 2025 R1 (Built: Nov 30 2024 15:51:52) (10:12:20 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_M_CLK0"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_M_DQS0"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_RX0"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_PCIE0_TX0"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REF1"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_REFCLK0"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_RD"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RMII_S0_TD"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD1"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD2"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD3"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD4"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_RSVD5"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH0_D_CH"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH1_D"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, ignoring differential net definition "DP_USBH2_D_CH"; both + and - net names are empty.  (10:12:21 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" started on host AAPVHWVMVEUGTEC at Wed Oct 22 10:12:22 2025 (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, [Simulation Directory]: "C:/Users/mlin/AppData/Local/Temp/ens_temp_14104.pjt/" (10:12:22 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_000" has a thickness of 0 mm and will be ignored (10:12:22 AM  Oct 22, 2025)
+[warning] Project:pcb, Design:pcb, Dielectric layer "UNNAMED_012" has a thickness of 0 mm and will be ignored (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, GND (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<8> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<9> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<10> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<11> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<12> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<13> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<14> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQ<15> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQS<1> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, M_DQS_N<1> (10:12:22 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, SYZ solver completed with return code 0 (10:12:30 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, Simulation "mysweep" completed on host AAPVHWVMVEUGTEC at Wed Oct 22 10:12:29 2025 (10:12:30 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, Saved "C:/Users/mlin/AppData/Local/Temp/ens_temp_14104.pjt/pcb.siw" (10:12:30 AM  Oct 22, 2025)
+[info] Project:pcb, Design:pcb, Touchstone export: Writing to "D:/OneDrive - ANSYS, Inc/a-client-repositories/lmz-siwave-SI-2025-10-17/SI Automation Flow/temp/pcb_20251022_101015/model.s20p" (10:12:32 AM  Oct 22, 2025)
+Stopping Batch Run: 10:12:33 AM  Oct 22, 2025
+ 
+Ansys Electronics Desktop Version 2025.1.0, Build: 2024-11-30 15:03:33
+Location: C:\Program Files\ANSYS Inc\v251\AnsysEM\ansysedt.exe
+Non Graphical Mode: No Project??
+Starting Batch Run: 10:12:58 AM  Oct 22, 2025
+Running as user : ANSYS\mlin
+Temp directory: C:\Users\mlin\AppData\Local\Temp
+Project directory: D:\OneDrive - ANSYS, Inc\Documents\Ansoft
+[info] GRPC server running on port: 62247.
+
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:04 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:10 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:11 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:11 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:11 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:14 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:15 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:16 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:16 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:16 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:18 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:19 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:20 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:20 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:20 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:22 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:23 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:24 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:24 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:24 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:26 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:28 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:28 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:28 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:28 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:30 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:32 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:32 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:33 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:33 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:34 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:36 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:36 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:37 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:37 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:39 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:40 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:41 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:41 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:41 AM  Oct 22, 2025)
+[info] Project:Project492, myTransient: Solution(s) invalidated. (10:13:43 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, Nexxim simulation will use local parameter scoping. To change this option, please go to Tools>Options>General Options>Circuit Design (10:13:44 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Processing circuit for new analysis. (10:13:45 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Starting analysis type TRAN. (10:13:45 AM  Oct 22, 2025)
+[info] Project:Project492, Design:Circuit Design_VZL, (info): Simulation succeeded. Total simulator time: 0:00:00 (10:13:45 AM  Oct 22, 2025)
+Stopping Batch Run: 10:13:57 AM  Oct 22, 2025

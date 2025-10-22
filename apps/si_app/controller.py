@@ -105,31 +105,48 @@ class AppController(QObject):
             return os.path.normpath(path)
         return os.path.normpath(os.path.join(self.project_root, path))
 
-    def _refresh_cct_tab(self, project_path=None):
-        cct_tab = self.tabs.get("cct_tab")
-        if not cct_tab:
-            return
-
-        loader = getattr(cct_tab, "load_from_project", None)
-        if not callable(loader):
-            return
-
+    def _refresh_cct_tabs(self, project_path=None):
         path = project_path or self.project_file
-        if (not path or not os.path.exists(path)) and hasattr(cct_tab, "project_path_input"):
-            try:
-                candidate = cct_tab.project_path_input.text().strip()
-            except Exception:
-                candidate = None
-            if candidate:
-                path = candidate
 
-        if not path or not os.path.exists(path):
+        def resolve_path(existing_path):
+            if existing_path and os.path.exists(existing_path):
+                return existing_path
+            return None
+
+        tabs_to_update = []
+        for name in ("cct_tab", "table"):
+            tab = self.tabs.get(name)
+            if not tab:
+                continue
+            loader = getattr(tab, "load_from_project", None)
+            if callable(loader):
+                tabs_to_update.append((tab, loader))
+
+        if not tabs_to_update:
             return
 
-        try:
-            loader(path)
-        except Exception as exc:
-            self.log(f"Could not refresh CCT tab: {exc}", "orange")
+        candidate_path = resolve_path(path)
+        if not candidate_path:
+            for tab, _ in tabs_to_update:
+                attr = getattr(tab, "project_path_input", None)
+                if attr is None:
+                    continue
+                try:
+                    text_value = attr.text().strip()
+                except Exception:
+                    text_value = ""
+                candidate_path = resolve_path(text_value)
+                if candidate_path:
+                    break
+
+        if not candidate_path:
+            return
+
+        for tab, loader in tabs_to_update:
+            try:
+                loader(candidate_path)
+            except Exception as exc:
+                self.log(f"Could not refresh {tab.__class__.__name__}: {exc}", "orange")
 
     def get_action_spec(self, action, *, tab_name=None):
         """Return script metadata for a given action, falling back to default scripts directory."""
@@ -223,7 +240,7 @@ class AppController(QObject):
             port_setup_tab = self.tabs.get("port_setup_tab")
             if port_setup_tab:
                 port_setup_tab.load_pcb_data()
-            self._refresh_cct_tab()
+            self._refresh_cct_tabs()
 
         elif task_type == "set_edb":
             self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
@@ -231,12 +248,12 @@ class AppController(QObject):
             if self.current_aedb_path:
                 new_aedb_path = self.current_aedb_path.replace(".aedb", "_applied.aedb")
                 self.log(f"Successfully created {new_aedb_path}")
-            self._refresh_cct_tab()
+            self._refresh_cct_tabs()
 
         elif task_type == "set_sim":
             self.log("Set simulation process finished.")
             self.log("Successfully applied simulation settings. Now running simulation...")
-            self._refresh_cct_tab()
+            self._refresh_cct_tabs()
             self._queue_simulation_run(context)
 
         elif task_type == "run_sim":
@@ -247,12 +264,12 @@ class AppController(QObject):
             if result_tab:
                 result_tab.project_path_input.setText(self.project_file)
             self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
-            self._refresh_cct_tab()
+            self._refresh_cct_tabs()
 
         elif task_type == "run_cct":
             self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
             self.log("CCT calculation finished.")
-            self._refresh_cct_tab()
+            self._refresh_cct_tabs()
 
         elif task_type == "get_loss":
             self.log("Successfully got loss data. Generating HTML report...")
@@ -437,7 +454,7 @@ class AppController(QObject):
             except (IOError, json.JSONDecodeError) as e:
                 self.log(f"Could not read project config: {e}", "orange")
 
-        self._refresh_cct_tab()
+        self._refresh_cct_tabs()
 
     def save_config(self):
         simulation_tab = self.tabs.get("simulation_tab")

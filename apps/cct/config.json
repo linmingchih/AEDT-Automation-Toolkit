@@ -4,7 +4,8 @@
     "import_tab",
     "port_setup_tab",
     "simulation_tab",
-    "cct_tab"
+    "cct_tab",
+    "table"
   ],
   "actions": {
     "import_tab": {
