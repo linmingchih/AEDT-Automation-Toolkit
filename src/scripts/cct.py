@@ -1,4 +1,5 @@
 import os
+import sys 
 import re
 import uuid
 import tempfile
@@ -11,7 +12,7 @@ import skrf as rf
 from ansys.aedt.core import Circuit
 from ansys.aedt.core.generic.constants import Setups
 
-project_path = os.path.join(os.path.dirname(__file__), 'project.json')
+project_path = sys.argv[1]
 
 
 def format_with_unit(value, unit):
