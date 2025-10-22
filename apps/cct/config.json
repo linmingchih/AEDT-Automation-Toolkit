@@ -3,7 +3,8 @@
   "tabs": [
     "import_tab",
     "port_setup_tab",
-    "simulation_tab"
+    "simulation_tab",
+    "cct_tab"
   ],
   "actions": {
     "import_tab": {
@@ -15,6 +16,9 @@
     "simulation_tab": {
       "set_sim": "set_sim.py",
       "run_sim": "run_sim.py"
+    },
+    "cct_tab": {
+      "run_cct": "cct.py"
     }
   },
   "settings": {
