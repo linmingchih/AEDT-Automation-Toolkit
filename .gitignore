@@ -6,3 +6,4 @@ temp/
 __pycache__/
 *.py[cod]
 *$py.class
+/apps/si_app/__pycache__

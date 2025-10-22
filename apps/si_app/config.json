@@ -1,11 +1,11 @@
 {
   "display_name": "SI Automation Flow",
-  "tabs": [
-    "import_tab",
-    "port_setup_tab",
-    "simulation_tab",
-    "result_tab"
-  ],
+  "tabs": {
+    "import_tab": "Import",
+    "port_setup_tab": "Port Setup",
+    "simulation_tab": "Simulation",
+    "result_tab": "Result"
+  },
   "actions": {
     "import_tab": {
       "get_edb": "get_edb.py"

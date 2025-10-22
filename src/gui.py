@@ -137,19 +137,20 @@ class MainApplicationWindow(QMainWindow):
                 })
                 self.apps[app_name] = app_meta
                 self._update_window_title(display_name)
-                tab_names = config.get("tabs", [])
+                tabs_config = config.get("tabs", {})
                 
                 loaded_tabs = {}
-                for tab_name in tab_names:
-                    tab_module_name = f"tabs.{tab_name}"
-                    tab_module = importlib.import_module(tab_module_name)
-                    
-                    class_name = "".join(word.capitalize() for word in tab_name.split('_'))
-                    tab_class = getattr(tab_module, class_name)
-                    
-                    tab_instance = tab_class(self.current_controller)
-                    self.tabs.addTab(tab_instance, " ".join(word.capitalize() for word in tab_name.split('_')))
-                    loaded_tabs[tab_name] = tab_instance
+                if isinstance(tabs_config, dict):
+                    for tab_name, display_title in tabs_config.items():
+                        tab_module_name = f"tabs.{tab_name}"
+                        tab_module = importlib.import_module(tab_module_name)
+                        
+                        class_name = "".join(word.capitalize() for word in tab_name.split('_'))
+                        tab_class = getattr(tab_module, class_name)
+                        
+                        tab_instance = tab_class(self.current_controller)
+                        self.tabs.addTab(tab_instance, display_title)
+                        loaded_tabs[tab_name] = tab_instance
                 
                 if hasattr(self.current_controller, "connect_signals"):
                     self.current_controller.connect_signals(loaded_tabs)
