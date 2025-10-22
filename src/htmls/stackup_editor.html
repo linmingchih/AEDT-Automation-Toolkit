@@ -1,0 +1,2281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stackup XML Editor</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #f5f7fb;
+      color: #1f2933;
+    }
+
+    body {
+      margin: 0;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    section.panel {
+      background: #ffffff;
+      border: 1px solid #c7d2e2;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    header.actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    label.help {
+      font-size: 0.88rem;
+      color: #334155;
+    }
+
+    button,
+    .button-lookalike {
+      padding: 0.48rem 0.9rem;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      border: 1px solid #355bc4;
+      background: #4a74df;
+      color: #ffffff;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    button.secondary {
+      border-color: #8694a8;
+      background: #edf0f7;
+      color: #1f2933;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .file-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .file-input-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    .file-name-display {
+      font-size: 0.85rem;
+      color: #475569;
+    }
+
+    .help-content {
+      padding: 0.75rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background-color: #f8fafc;
+    }
+
+    .help-content h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+    }
+
+    .help-content ol {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .help-content li {
+      margin-bottom: 0.25rem;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin: 0.75rem 0;
+    }
+
+    table.grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    table.grid thead {
+      background: #e8edf9;
+      border-bottom: 2px solid #afbdd9;
+    }
+
+    table.grid thead th {
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    table.grid thead th::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(99, 102, 241, 0.2);
+      opacity: 0;
+      transition: opacity 150ms ease-in-out;
+      pointer-events: none;
+    }
+
+    table.grid thead th:hover::after {
+      opacity: 1;
+    }
+
+    table.grid thead th.header-active::after {
+      background-color: rgba(99, 102, 241, 0.3);
+      opacity: 1;
+      transition-duration: 50ms;
+    }
+
+    table.grid th,
+    table.grid td {
+      border: 1px solid #c7d2e2;
+      padding: 0.4rem 0.45rem;
+      min-width: 5.5rem;
+      vertical-align: middle;
+    }
+
+    table.grid tbody tr:nth-child(even) {
+      background: #f8fbff;
+    }
+    tr.layer-row.conductor-row {
+      background-color: #FFFFFF;
+    }
+
+    tr.layer-row.conductor-row td {
+      background-color: #FFFFFF;
+    }
+
+    tr.layer-row.dielectric-row {
+      background-color: #CCFFCC;
+    }
+
+    tr.layer-row.dielectric-row td {
+      background-color: #CCFFCC;
+    }
+    #materialsTable tr.material-row {
+      cursor: pointer;
+    }
+
+    #materialsTable tr.material-row:hover {
+      background-color: #eef2ff;
+    }
+
+    table.grid td[contenteditable="true"] {
+      background: inherit;
+      background: #ffffff;
+      white-space: nowrap;
+    }
+
+    table.grid td[contenteditable="true"]:focus {
+      outline: 2px solid #3a6be0;
+      outline-offset: -2px;
+      background: #eef3ff;
+    }
+
+    table.grid tr.layer-row.conductor-row,
+    table.grid tr.layer-row.conductor-row td,
+    table.grid tr.layer-row.conductor-row td[contenteditable="true"] {
+      background-color: #FFFFFF !important;
+    }
+
+    table.grid tr.layer-row.dielectric-row,
+    table.grid tr.layer-row.dielectric-row td,
+    table.grid tr.layer-row.dielectric-row td[contenteditable="true"] {
+      background-color: #CCFFCC !important;
+    }
+
+    td.numeric {
+      text-align: right;
+    }
+
+    td.color {
+      min-width: 6rem;
+    }
+
+    td.color input[type="color"] {
+      width: 100%;
+      display: block;
+      border: none;
+      background: transparent;
+      padding: 0;
+      height: 1.5rem;
+      cursor: pointer;
+    }
+
+    td.nowrap {
+      white-space: nowrap;
+    }
+
+    input.type-text {
+      width: 12rem;
+      padding: 0.4rem;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    p.help {
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: #475569;
+      margin: 0;
+    }
+
+    @media (max-width: 1100px) {
+      body {
+        padding: 1rem;
+      }
+      table.grid {
+        font-size: 0.8rem;
+      }
+      table.grid td[contenteditable="true"] {
+        min-width: 4.5rem;
+      }
+    }
+
+    td.fill-material-cell {
+      position: relative;
+    }
+
+    td.fill-material-cell::after {
+      content: "\25BC";
+      position: absolute;
+      top: 50%;
+      right: 0.75rem;
+      transform: translateY(-40%);
+      font-size: 0.75rem;
+      color: #9aa0a6;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    td.fill-material-cell:hover::after,
+    td.fill-material-cell:focus-within::after {
+      opacity: 1;
+      transform: translateY(-50%);
+    }
+
+    .fill-material-select {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      border: none;
+      background-color: transparent;
+      background-image: none;
+      font: inherit;
+      color: inherit;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      text-align-last: center;
+      box-sizing: border-box;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      transition: background-color 120ms ease;
+    }
+
+    .fill-material-select:focus,
+    .fill-material-select:focus-visible {
+      background-color: #f9f9f9;
+      outline: none;
+      box-shadow: inset 0 0 0 1px #d0d0d0;
+    }
+
+    .fill-material-select::-ms-expand {
+      display: none;
+    }
+
+    td.cell-selected {
+      background-color: #eef2ff;
+      box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.45);
+    }
+
+    .multi-edit {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background-color: #f8fafc;
+      flex-wrap: wrap;
+    }
+
+    .multi-edit span {
+      font-size: 0.9rem;
+      color: #1f2933;
+      font-weight: 500;
+    }
+
+    .multi-edit input[type="text"] {
+      flex: 1 1 12rem;
+      min-width: 10rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .multi-edit .multi-edit-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stackup XML Editor</h1>
+
+  <section class="panel">
+    <header class="actions">
+      <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept=".xml" class="file-input-hidden" />
+        <label for="fileInput" class="button-lookalike">Select XML File</label>
+        <span id="fileName" class="file-name-display"></span>
+      </div>
+      <button id="downloadXml" disabled>Download Edited XML</button>
+      <button id="toggleHelpBtn" class="secondary" style="margin-left: auto;">Show Help</button>
+    </header>
+    <div id="helpContent" class="help-content hidden">
+      <h4>How to Use</h4>
+      <ol>
+        <li>Click <strong>Select XML File</strong> to load a valid stackup XML file.</li>
+        <li>The editor will parse the file and display the materials and layers in editable tables.</li>
+        <li>Click directly on cells in the <strong>Layers</strong> table to edit their values. Changes are saved automatically.</li>
+        <li>Material properties (dk, df, conductivity) can be edited directly in the layer row. The <strong>Materials</strong> table will update to reflect these changes.</li>
+        <li>Once you are finished, click <strong>Download Edited XML</strong> to save your changes to a new file.</li>
+      </ol>
+    </div>
+    <p class="help">
+      <strong>Pro Tip:</strong> You can paste a cell block copied from Excel straight into the layers table.
+    </p>
+  </section>
+
+  <section id="materialsSection" class="panel hidden">
+    <header class="actions">
+      <h2 style="margin:0;font-size:1.15rem;">Materials</h2>
+    </header>
+    <p class="help">
+      Materials are generated automatically from layer edits. The values update in sync with the layers table and cannot be edited manually.
+    </p>
+    <table id="materialsTable" class="grid" spellcheck="false">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>dk (Permittivity)</th>
+          <th>df (Loss Tangent)</th>
+          <th>Conductivity</th>
+          <th>Layers</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="layersSection" class="panel hidden">
+    <header class="actions" style="justify-content: space-between;">
+      <div>
+        <h2 style="margin:0;font-size:1.15rem;">Layers</h2>
+        <p class="help" style="margin-top:0.35rem;">
+          Length unit (<code>Layers@LengthUnit</code>):
+          <input id="lengthUnit" class="type-text" type="text" placeholder="mil" />
+        </p>
+      </div>
+    </header>
+    <form id="multiEditForm" class="multi-edit hidden" autocomplete="off">
+      <span id="multiEditSummary"></span>
+      <input id="multiEditValue" type="text" placeholder="Enter value" />
+      <div class="multi-edit-actions">
+        <button type="submit">Apply</button>
+        <button type="button" id="multiEditCancel" class="secondary">Cancel</button>
+      </div>
+    </form>
+    <table id="layersTable" class="grid" spellcheck="false">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Material</th>
+          <th>Material dk</th>
+          <th>Material df</th>
+          <th>Material Conductivity</th>
+          <th>Fill Material</th>
+          <th>Thickness</th>
+          <th>Etch Factor</th>
+          <th>Color</th>
+          <th>Huray Top Ratio</th>
+          <th>Huray Top Radius (um)</th>
+          <th>Huray Bottom Ratio</th>
+          <th>Huray Bottom Radius (um)</th>
+          <th>Huray Side Ratio</th>
+          <th>Huray Side Radius (um)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="otherLayersSection" class="panel hidden">
+    <h2 style="margin:0;font-size:1.15rem;">Other Layers</h2>
+    <p class="help">Layers that are neither conductors nor dielectrics are listed here for reference.</p>
+    <table id="otherLayersTable" class="grid" spellcheck="false">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Material</th>
+          <th>Thickness</th>
+          <th>Color</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script>
+    const state = {
+      materials: [],
+      materialMap: new Map(),
+      materialIdCounter: 0,
+      layers: [],
+      lengthUnit: ""
+    };
+
+    const dom = {
+      fileInput: document.getElementById("fileInput"),
+      downloadXml: document.getElementById("downloadXml"),
+      materialsSection: document.getElementById("materialsSection"),
+      materialsTableBody: document.querySelector("#materialsTable tbody"),
+      layersSection: document.getElementById("layersSection"),
+      layersTableBody: document.querySelector("#layersTable tbody"),
+      multiEditForm: document.getElementById("multiEditForm"),
+      multiEditSummary: document.getElementById("multiEditSummary"),
+      multiEditValue: document.getElementById("multiEditValue"),
+      multiEditCancel: document.getElementById("multiEditCancel"),
+      lengthUnit: document.getElementById("lengthUnit"),
+      otherLayersSection: document.getElementById("otherLayersSection"),
+      otherLayersTableBody: document.querySelector("#otherLayersTable tbody"),
+      toggleHelpBtn: document.getElementById("toggleHelpBtn"),
+      helpContent: document.getElementById("helpContent"),
+      fileNameDisplay: document.getElementById("fileName")
+    };
+
+    const multiSelectState = {
+      cells: new Set(),
+      inputDirty: false
+    };
+
+    function resolveCellDataElement(cell) {
+      if (!cell) {
+        return null;
+      }
+      if (cell.dataset && cell.dataset.collection && cell.dataset.field) {
+        return cell;
+      }
+      return cell.querySelector("[data-collection][data-field]");
+    }
+
+    function getCellDescriptor(cell) {
+      const dataElement = resolveCellDataElement(cell);
+      if (!dataElement) {
+        return null;
+      }
+      const collection = dataElement.dataset.collection;
+      const field = dataElement.dataset.field;
+      if (!collection || !field) {
+        return null;
+      }
+      const hasInteractiveChild = Boolean(cell.querySelector("input[data-field], select[data-field], textarea[data-field]"));
+      if (!cell.isContentEditable && !hasInteractiveChild) {
+        return null;
+      }
+      const row = cell.closest("tr");
+      if (!row) {
+        return null;
+      }
+      const index = Number(row.dataset.index || "-1");
+      if (Number.isNaN(index) || index < 0) {
+        return null;
+      }
+      return { cell, dataElement, collection, field, index };
+    }
+
+    function readCellValue(cell) {
+      const interactive = cell.querySelector("input[data-field], select[data-field], textarea[data-field]");
+      if (interactive instanceof HTMLInputElement || interactive instanceof HTMLSelectElement || interactive instanceof HTMLTextAreaElement) {
+        return interactive.value;
+      }
+      const text = cell.textContent || "";
+      return text.trim();
+    }
+
+    function getSelectionDescriptors() {
+      const descriptors = [];
+      multiSelectState.cells.forEach((cell) => {
+        const descriptor = getCellDescriptor(cell);
+        if (descriptor) {
+          descriptors.push(descriptor);
+        }
+      });
+      return descriptors;
+    }
+
+    function computeSharedValue() {
+      const descriptors = getSelectionDescriptors();
+      if (descriptors.length === 0) {
+        return "";
+      }
+      const values = new Set();
+      descriptors.forEach(({ cell }) => {
+        values.add(readCellValue(cell));
+      });
+      if (values.size === 1) {
+        return values.values().next().value;
+      }
+      return "";
+    }
+
+    function updateMultiEditBar() {
+      const { multiEditForm, multiEditSummary, multiEditValue } = dom;
+      if (!multiEditForm || !multiEditSummary || !multiEditValue) {
+        return;
+      }
+      const count = multiSelectState.cells.size;
+      const wasHidden = multiEditForm.classList.contains("hidden");
+      if (count > 1) {
+        multiEditSummary.textContent = `Apply value to ${count} selected cells`;
+        if (!multiSelectState.inputDirty) {
+          multiEditValue.value = computeSharedValue();
+        }
+        if (wasHidden) {
+          multiEditForm.classList.remove("hidden");
+          requestAnimationFrame(() => {
+            multiEditValue.focus();
+            multiEditValue.select();
+          });
+        }
+      } else {
+        multiEditSummary.textContent = "";
+        if (!wasHidden) {
+          multiEditForm.classList.add("hidden");
+        }
+        multiEditValue.value = "";
+        multiSelectState.inputDirty = false;
+      }
+    }
+
+    function clearSelection() {
+      multiSelectState.cells.forEach((cell) => {
+        cell.classList.remove("cell-selected");
+      });
+      multiSelectState.cells.clear();
+      multiSelectState.inputDirty = false;
+      updateMultiEditBar();
+    }
+
+    function selectCell(cell) {
+      const descriptor = getCellDescriptor(cell);
+      if (!descriptor || descriptor.collection !== "layers") {
+        return;
+      }
+      if (!multiSelectState.cells.has(cell)) {
+        multiSelectState.cells.add(cell);
+        cell.classList.add("cell-selected");
+      }
+    }
+
+    function toggleCellSelection(cell) {
+      const descriptor = getCellDescriptor(cell);
+      if (!descriptor || descriptor.collection !== "layers") {
+        return;
+      }
+      if (multiSelectState.cells.has(cell)) {
+        cell.classList.remove("cell-selected");
+        multiSelectState.cells.delete(cell);
+      } else {
+        multiSelectState.cells.add(cell);
+        cell.classList.add("cell-selected");
+      }
+      updateMultiEditBar();
+    }
+
+    function applySharedValueToSelection(value) {
+      const descriptors = getSelectionDescriptors();
+      if (descriptors.length === 0) {
+        return;
+      }
+      let shouldRenderLayers = false;
+      descriptors.forEach(({ collection, field, index }) => {
+        if (collection === "layers") {
+          updateLayerCell(index, field, value, { ensureMaterial: false });
+          shouldRenderLayers = true;
+        }
+      });
+      clearSelection();
+      if (shouldRenderLayers) {
+        renderLayers();
+      }
+    }
+    if (dom.multiEditValue) {
+      dom.multiEditValue.addEventListener("input", () => {
+        multiSelectState.inputDirty = true;
+      });
+    }
+
+    if (dom.multiEditForm) {
+      dom.multiEditForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (multiSelectState.cells.size === 0) {
+          return;
+        }
+        const value = dom.multiEditValue ? dom.multiEditValue.value : "";
+        applySharedValueToSelection(value);
+      });
+    }
+
+    if (dom.multiEditCancel) {
+      dom.multiEditCancel.addEventListener("click", () => {
+        clearSelection();
+      });
+    }
+
+    const layersTableHeader = document.querySelector("#layersTable thead");
+    if (layersTableHeader) {
+      layersTableHeader.addEventListener("click", (event) => {
+        const headerCell = event.target.closest("th");
+        if (!headerCell) {
+          return;
+        }
+
+        headerCell.classList.add("header-active");
+        setTimeout(() => {
+          headerCell.classList.remove("header-active");
+        }, 150);
+
+        const columnIndex = Array.from(headerCell.parentElement.children).indexOf(headerCell);
+        if (columnIndex < 0 || columnIndex >= layerFieldDescriptors.length) {
+          return;
+        }
+
+        const descriptor = layerFieldDescriptors[columnIndex];
+        if (!descriptor) {
+          return;
+        }
+
+        clearSelection();
+
+        const field = descriptor.key;
+        const cellsToSelect = dom.layersTableBody.querySelectorAll('td[data-field="' + field + '"]');
+
+        cellsToSelect.forEach(cell => {
+          selectCell(cell);
+        });
+
+        updateMultiEditBar();
+      });
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && multiSelectState.cells.size > 0) {
+        clearSelection();
+      }
+    });
+
+    document.body.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const multiEditForm = dom.multiEditForm;
+      if (multiEditForm && multiEditForm.contains(target)) {
+        return;
+      }
+      const cell = target.closest("td");
+      const descriptor = cell ? getCellDescriptor(cell) : null;
+      const isModifier = event.ctrlKey || event.metaKey;
+      if (isModifier && descriptor && descriptor.collection === "layers") {
+        event.preventDefault();
+        toggleCellSelection(descriptor.cell);
+        return;
+      }
+      if (!isModifier && multiSelectState.cells.size > 0) {
+        if (!descriptor || !multiSelectState.cells.has(descriptor.cell) || multiSelectState.cells.size > 1) {
+          clearSelection();
+        }
+      }
+    }, true);
+
+    dom.toggleHelpBtn.addEventListener("click", () => {
+      const isHidden = dom.helpContent.classList.toggle("hidden");
+      dom.toggleHelpBtn.textContent = isHidden ? "Show Help" : "Hide Help";
+    });
+
+    dom.fileInput.addEventListener("change", () => {
+      if (dom.fileInput.files.length > 0) {
+        dom.fileNameDisplay.textContent = dom.fileInput.files[0].name;
+      } else {
+        dom.fileNameDisplay.textContent = "";
+      }
+    });
+
+    const materialFieldDescriptors = [
+      { key: "name" },
+      { key: "permittivity" },
+      { key: "lossTangent" },
+      { key: "conductivity" }
+    ];
+
+    const layerFieldDescriptors = [
+      { key: "name" },
+      { key: "type" },
+      { key: "material" },
+      { key: "materialPermittivity", materialTarget: "material", materialProp: "permittivity" },
+      { key: "materialLossTangent", materialTarget: "material", materialProp: "lossTangent" },
+      { key: "materialConductivity", materialTarget: "material", materialProp: "conductivity" },
+      { key: "fillMaterial" },
+      { key: "thickness" },
+      { key: "etchFactor" },
+      { key: "color" },
+      { key: "hurayTopRatio" },
+      { key: "hurayTopRadius" },
+      { key: "hurayBottomRatio" },
+      { key: "hurayBottomRadius" },
+      { key: "huraySideRatio" },
+      { key: "huraySideRadius" }
+    ];
+
+    const layerFieldIndex = new Map(layerFieldDescriptors.map((descriptor, idx) => [descriptor.key, idx]));
+
+    dom.fileInput.addEventListener("change", async (event) => {
+      const files = event.target.files;
+      const file = files && files[0];
+      if (!file) {
+        return;
+      }
+      try {
+        const text = await file.text();
+        loadXml(text);
+      } catch (error) {
+        console.error(error);
+        alert("Failed to read file. Please check browser permissions.");
+      }
+    });
+
+    dom.downloadXml.addEventListener("click", () => {
+      try {
+        const xmlString = buildXml();
+        const blob = new Blob([xmlString], { type: "application/xml" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "stackup_export.xml";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } catch (error) {
+        console.error(error);
+        alert("Error while generating XML. Please review the table for missing values.");
+      }
+    });
+
+    dom.lengthUnit.addEventListener("input", (event) => {
+      state.lengthUnit = event.target.value.trim();
+    });
+
+    document.body.addEventListener("input", (event) => {
+      const element = event.target;
+      if (!(element instanceof HTMLElement)) {
+        return;
+      }
+      const collection = element.dataset.collection;
+      if (!collection) {
+        return;
+      }
+
+      const isInputElement = element instanceof HTMLInputElement || element instanceof HTMLSelectElement;
+      if (!isInputElement) {
+        sanitizeCell(element);
+      }
+
+      const rowElement = element.closest("tr");
+      if (!rowElement) {
+        return;
+      }
+      const index = Number(rowElement.dataset.index || "-1");
+      if (Number.isNaN(index) || index < 0) {
+        return;
+      }
+      const field = element.dataset.field;
+      if (!field) {
+        return;
+      }
+
+      const value = isInputElement ? element.value : element.textContent.trim();
+
+      if (collection === "materials") {
+        updateMaterialCell(index, field, value);
+        renderLayers();
+      } else if (collection === "layers") {
+        updateLayerCell(index, field, value, { ensureMaterial: false });
+        const layer = state.layers[index];
+        if (!layer) {
+          return;
+        }
+        if (field === "etchFactor" && !(element instanceof HTMLInputElement)) {
+          element.textContent = layer.etchFactor || "";
+        }
+        if (field === "material" && !(element instanceof HTMLInputElement)) {
+          element.textContent = layer.material || "";
+        }
+        if (field === "fillMaterial") {
+          if (element instanceof HTMLSelectElement) {
+            const desiredValue = layer.fillMaterial || "";
+            if (element.value !== desiredValue) {
+              element.value = desiredValue;
+            }
+          } else if (!(element instanceof HTMLInputElement)) {
+            element.textContent = layer.fillMaterial || "";
+          }
+        }
+        if (field === "color" && element instanceof HTMLInputElement) {
+          element.value = ensureColorInputValue(layer.color);
+          element.title = ensureColorInputValue(layer.color);
+        }
+      }
+    });
+
+    document.body.addEventListener("focusout", (event) => {
+      const cell = event.target;
+      if (!(cell instanceof HTMLElement)) {
+        return;
+      }
+      if (cell.dataset.collection !== "layers") {
+        return;
+      }
+      const rowElement = cell.closest("tr");
+      if (!rowElement) {
+        return;
+      }
+      const index = Number(rowElement.dataset.index || "-1");
+      if (Number.isNaN(index) || index < 0) {
+        return;
+      }
+      const layer = state.layers[index];
+      if (!layer) {
+        return;
+      }
+      const field = cell.dataset.field;
+      if (field === "material") {
+        commitLayerMaterial(layer, "material");
+        renderLayers();
+      } else if (field === "fillMaterial") {
+        commitLayerMaterial(layer, "fillMaterial");
+        renderLayers();
+      } else if (field === "type") {
+        renderLayers();
+      } else if (cell.dataset.materialProp) {
+        renderLayers();
+      }
+    }, true);
+
+    document.body.addEventListener("keydown", (event) => {
+      const cell = event.target;
+      if (!(cell instanceof HTMLElement)) {
+        return;
+      }
+      if (cell.dataset.collection !== "layers") {
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        moveFocus(cell, event.shiftKey ? -1 : 1);
+      }
+    });
+
+    document.body.addEventListener("paste", (event) => {
+      const cell = event.target;
+      if (!(cell instanceof HTMLElement)) {
+        return;
+      }
+      const collection = cell.dataset.collection;
+      if (!collection) {
+        return;
+      }
+      const clipboard = event.clipboardData && event.clipboardData.getData("text");
+      if (!clipboard || (clipboard.indexOf("\t") === -1 && clipboard.indexOf("\n") === -1)) {
+        return;
+      }
+      event.preventDefault();
+      const matrix = clipboard
+        .split(/\r?\n/)
+        .filter((row, idx, arr) => !(row === "" && idx === arr.length - 1))
+        .map((row) => row.split("\t"));
+      const rowElement = cell.closest("tr");
+      if (!rowElement) {
+        return;
+      }
+      const startRow = Number(rowElement.dataset.index || "-1");
+      if (Number.isNaN(startRow) || startRow < 0) {
+        return;
+      }
+      const field = cell.dataset.field;
+      if (!field) {
+        return;
+      }
+      if (collection === "layers") {
+        const startField = layerFieldIndex.get(field);
+        if (startField === undefined) {
+          return;
+        }
+        applyMatrixToLayers(startRow, startField, matrix);
+      } else if (collection === "materials") {
+        const startField = materialFieldDescriptors.findIndex((descriptor) => descriptor.key === field);
+        if (startField === -1) {
+          return;
+        }
+        applyMatrixToMaterials(startRow, startField, matrix);
+      }
+    });
+
+    document.body.addEventListener("click", (event) => {
+      const button = event.target;
+      if (!(button instanceof HTMLButtonElement)) {
+        return;
+      }
+      const action = button.dataset.action;
+      if (!action) {
+        return;
+      }
+      const rowElement = button.closest("tr");
+      if (!rowElement) {
+        return;
+      }
+      const index = Number(rowElement.dataset.index || "-1");
+      if (Number.isNaN(index) || index < 0) {
+        return;
+      }
+      if (action === "remove-layer") {
+        state.layers.splice(index, 1);
+        renderLayers();
+      } else if (action === "remove-material") {
+        removeMaterialAtIndex(index);
+        renderLayers();
+      }
+    });
+    function loadXml(xmlText) {
+      resetState();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlText, "application/xml");
+      const errorNode = doc.getElementsByTagName("parsererror")[0];
+      if (errorNode) {
+        console.error(errorNode.textContent || "parsererror");
+        alert("Unable to parse XML. Please check the file format.");
+        return;
+      }
+
+      const control = doc.documentElement;
+      if (!control || control.localName !== "Control") {
+        alert("Expected c:Control root element.");
+        return;
+      }
+
+      const stackup = findChildElement(control, "Stackup");
+      if (!stackup) {
+        alert("Unable to locate Stackup element in the XML.");
+        return;
+      }
+
+      parseMaterials(stackup);
+      parseLayers(stackup);
+
+      dom.materialsSection.classList.remove("hidden");
+      dom.layersSection.classList.remove("hidden");
+      dom.downloadXml.disabled = false;
+      dom.lengthUnit.value = state.lengthUnit;
+
+      pruneUnusedMaterials();
+      renderMaterials();
+      renderLayers();
+    }
+
+    function resetState() {
+      state.materials = [];
+      state.materialMap = new Map();
+      state.materialIdCounter = 0;
+      state.layers = [];
+      state.lengthUnit = "";
+    }
+
+    function parseMaterials(stackup) {
+      const materialsParent = findChildElement(stackup, "Materials");
+      const materialNodes = findChildElements(materialsParent, "Material");
+      materialNodes.forEach((node) => {
+        const name = (node.getAttribute("Name") || "").trim();
+        const entry = {
+          id: generateMaterialId(),
+          name: name,
+          permittivity: readDouble(node, "Permittivity"),
+          lossTangent: readDouble(node, "DielectricLossTangent"),
+          conductivity: readDouble(node, "Conductivity"),
+          aliases: []
+        };
+        state.materials.push(entry);
+        if (name) {
+          registerMaterialAlias(entry, name);
+        }
+      });
+    }
+
+    function parseLayers(stackup) {
+      const layersRoot = findChildElement(stackup, "Layers");
+      if (!layersRoot) {
+        return;
+      }
+      const lengthUnitAttr = layersRoot.getAttribute("LengthUnit");
+      state.lengthUnit = lengthUnitAttr ? lengthUnitAttr : "";
+      const layerNodes = findChildElements(layersRoot, "Layer");
+      layerNodes.forEach((node) => {
+        const layer = createEmptyLayer();
+        layer.name = node.getAttribute("Name") || "";
+        layer.type = node.getAttribute("Type") || "";
+        layer.material = node.getAttribute("Material") || "";
+        layer.fillMaterial = node.getAttribute("FillMaterial") || "";
+        layer.thickness = node.getAttribute("Thickness") || "";
+        layer.etchFactor = formatEtchFactor(node.getAttribute("EtchFactor") || "");
+        layer.color = normalizeColorValue(node.getAttribute("Color") || "") || "";
+        layer.hurayTopRatio = readHuray(node, "HuraySurfaceRoughness", "HallHuraySurfaceRatio");
+        layer.hurayTopRadius = readHuray(node, "HuraySurfaceRoughness", "NoduleRadius");
+        layer.hurayBottomRatio = readHuray(node, "HurayBottomSurfaceRoughness", "HallHuraySurfaceRatio");
+        layer.hurayBottomRadius = readHuray(node, "HurayBottomSurfaceRoughness", "NoduleRadius");
+        layer.huraySideRatio = readHuray(node, "HuraySideSurfaceRoughness", "HallHuraySurfaceRatio");
+        layer.huraySideRadius = readHuray(node, "HuraySideSurfaceRoughness", "NoduleRadius");
+
+        assignProps(layer.materialPropsFallback, findMaterial(layer.material));
+        assignProps(layer.fillMaterialPropsFallback, findMaterial(layer.fillMaterial));
+
+        state.layers.push(layer);
+      });
+    }
+
+    function createEmptyLayer() {
+      return {
+        name: "",
+        type: "",
+        material: "",
+        fillMaterial: "",
+        thickness: "",
+        etchFactor: "",
+        color: "",
+        hurayTopRatio: "",
+        hurayTopRadius: "",
+        hurayBottomRatio: "",
+        hurayBottomRadius: "",
+        huraySideRatio: "",
+        huraySideRadius: "",
+        materialPropsFallback: { permittivity: "", lossTangent: "", conductivity: "" },
+        fillMaterialPropsFallback: { permittivity: "", lossTangent: "", conductivity: "" }
+      };
+    }
+
+    function addMaterial(initial = {}) {
+      const desiredName = typeof initial.name === "string" ? initial.name.trim() : "";
+      const entry = {
+        id: generateMaterialId(),
+        name: ensureUniqueMaterialName(desiredName),
+        permittivity: initial.permittivity ?? "",
+        lossTangent: initial.lossTangent ?? "",
+        conductivity: initial.conductivity ?? "",
+        aliases: []
+      };
+      state.materials.push(entry);
+      registerMaterialAlias(entry, entry.name);
+      return entry;
+    }
+
+    function registerMaterialAlias(entry, alias) {
+      const normalized = normalizeMaterialPropValue(alias);
+      if (!normalized) {
+        return;
+      }
+      if (!entry.aliases) {
+        entry.aliases = [];
+      }
+      if (!entry.aliases.includes(normalized)) {
+        entry.aliases.push(normalized);
+      }
+      state.materialMap.set(normalized, entry);
+      state.materialMap.set(normalized.toLowerCase(), entry);
+      state.materialMap.set(normalized.toUpperCase(), entry);
+    }
+
+    function unregisterMaterialAlias(name) {
+      const normalized = normalizeMaterialPropValue(name);
+      if (!normalized) {
+        return;
+      }
+      state.materialMap.delete(normalized);
+      state.materialMap.delete(normalized.toLowerCase());
+      state.materialMap.delete(normalized.toUpperCase());
+    }
+
+    function unregisterMaterialAliases(entry) {
+      if (!entry || !entry.aliases) {
+        return;
+      }
+      entry.aliases.forEach((alias) => {
+        unregisterMaterialAlias(alias);
+      });
+      entry.aliases.length = 0;
+    }
+
+    function transferMaterialAliases(source, target) {
+      if (!source || !source.aliases || !target) {
+        return;
+      }
+      source.aliases.forEach((alias) => {
+        registerMaterialAlias(target, alias);
+      });
+      source.aliases.length = 0;
+    }
+
+    function ensureUniqueMaterialName(baseName) {
+      const trimmed = (baseName || "").trim();
+      if (!trimmed) {
+        return generateMaterialName();
+      }
+      let candidate = trimmed;
+      let suffix = 1;
+      while (isMaterialNameTaken(candidate)) {
+        candidate = `${trimmed}_${suffix}`;
+        suffix += 1;
+      }
+      return candidate;
+    }
+
+    function isMaterialNameTaken(name) {
+      if (!name) {
+        return false;
+      }
+      return state.materialMap.has(name)
+        || state.materialMap.has(name.toLowerCase())
+        || state.materialMap.has(name.toUpperCase());
+    }
+
+    function renderMaterials() {
+      dom.materialsTableBody.innerHTML = "";
+      state.materials.forEach((material, index) => {
+        const row = document.createElement("tr");
+        row.dataset.index = String(index);
+        row.dataset.name = material.name || "";
+        row.classList.add("material-row");
+        materialFieldDescriptors.forEach((descriptor) => {
+          const cell = document.createElement("td");
+          const value = material[descriptor.key] || "";
+          cell.textContent = value;
+          if (descriptor.key !== "name") {
+            cell.classList.add("numeric");
+          }
+          row.appendChild(cell);
+        });
+        const usageCell = document.createElement("td");
+        const layerNames = getLayerNamesUsingMaterial(material.name);
+        usageCell.textContent = layerNames.length === 0 ? "-" : layerNames.join(", ");
+        row.appendChild(usageCell);
+        dom.materialsTableBody.appendChild(row);
+      });
+    }
+
+    function pruneUnusedMaterials() {
+      let modified = false;
+      for (let index = state.materials.length - 1; index >= 0; index -= 1) {
+        const material = state.materials[index];
+        if (!material) {
+          continue;
+        }
+        const materialName = material.name || "";
+        if (countMaterialAssignments(materialName) === 0) {
+          unregisterMaterialAliases(material);
+          state.materials.splice(index, 1);
+          modified = true;
+        }
+      }
+      return modified;
+    }
+
+    function renderLayers() {
+
+      if (multiSelectState.cells.size > 0) {
+        clearSelection();
+      }
+
+      autoAssignFillMaterials();
+
+      dom.layersTableBody.innerHTML = "";
+
+      let hasEditable = false;
+
+      state.layers.forEach((layer, index) => {
+
+        if (!isConductor(layer.type) && !isDielectric(layer.type)) {
+          return;
+        }
+
+        hasEditable = true;
+
+        const row = document.createElement("tr");
+        row.classList.add("layer-row");
+        const rowMaterialName = normalizeMaterialPropValue(layer.material);
+        const rowFillMaterialName = normalizeMaterialPropValue(layer.fillMaterial);
+        if (isConductor(layer.type)) {
+          row.classList.add("conductor-row");
+        } else if (isDielectric(layer.type)) {
+          row.classList.add("dielectric-row");
+        }
+        row.dataset.index = String(index);
+        row.dataset.materialName = layer.material || "";
+        row.dataset.fillMaterialName = layer.fillMaterial || "";
+
+        layerFieldDescriptors.forEach((descriptor) => {
+
+          const cell = document.createElement("td");
+
+          if (descriptor.materialProp) {
+
+            cell.contentEditable = "true";
+
+            cell.tabIndex = 0;
+
+            cell.dataset.collection = "layers";
+
+            cell.dataset.field = descriptor.key;
+
+            cell.dataset.materialTarget = descriptor.materialTarget;
+
+            cell.dataset.materialProp = descriptor.materialProp;
+
+            cell.spellcheck = false;
+
+            cell.classList.add("numeric");
+
+            cell.textContent = getLayerMaterialValue(layer, descriptor.materialTarget, descriptor.materialProp);
+
+          } else if (descriptor.key === "color") {
+
+            cell.classList.add("color");
+            cell.dataset.collection = "layers";
+            cell.dataset.field = descriptor.key;
+
+            const colorInput = document.createElement("input");
+
+            colorInput.type = "color";
+
+            colorInput.dataset.collection = "layers";
+
+            colorInput.dataset.field = descriptor.key;
+
+            const colorValue = ensureColorInputValue(layer.color);
+
+            colorInput.value = colorValue;
+
+            colorInput.title = layer.color || colorValue;
+
+            cell.appendChild(colorInput);
+
+          } else if (descriptor.key === "fillMaterial" && isConductor(layer.type)) {
+            cell.dataset.collection = "layers";
+            cell.dataset.field = descriptor.key;
+            cell.tabIndex = 0;
+            cell.spellcheck = false;
+            cell.classList.add("fill-material-cell");
+
+            const select = document.createElement("select");
+            select.classList.add("fill-material-select");
+            select.dataset.collection = "layers";
+            select.dataset.field = descriptor.key;
+
+            const optionNames = getAdjacentDielectricMaterials(index);
+            const seenNames = new Set();
+            const addOption = (name) => {
+              const normalized = normalizeMaterialPropValue(name);
+              if (seenNames.has(normalized)) {
+                return;
+              }
+              seenNames.add(normalized);
+              const entry = normalized ? findMaterial(name) || findMaterial(normalized) : null;
+              const resolvedName = entry ? entry.name : normalized;
+              const option = document.createElement("option");
+              option.value = resolvedName || "";
+              option.textContent = resolvedName || "";
+              select.appendChild(option);
+            };
+
+            addOption("");
+            optionNames.forEach((name) => addOption(name));
+
+            const currentFill = layer.fillMaterial || "";
+            if (currentFill) {
+              addOption(currentFill);
+            }
+
+            select.value = currentFill;
+            cell.appendChild(select);
+
+          } else {
+            const disableForDielectric = (
+              isDielectric(layer.type) && (
+                descriptor.key === "fillMaterial" ||
+                descriptor.key === "etchFactor" ||
+                descriptor.key === "hurayTopRatio" ||
+                descriptor.key === "hurayTopRadius" ||
+                descriptor.key === "hurayBottomRatio" ||
+                descriptor.key === "hurayBottomRadius" ||
+                descriptor.key === "huraySideRatio" ||
+                descriptor.key === "huraySideRadius"
+              )
+            );
+
+            if (!disableForDielectric) {
+              cell.contentEditable = "true";
+              cell.tabIndex = 0;
+            }
+
+            cell.dataset.collection = "layers";
+            cell.dataset.field = descriptor.key;
+            cell.spellcheck = false;
+
+            cell.textContent = descriptor.key === "etchFactor" ? layer.etchFactor || "" : layer[descriptor.key] || "";
+
+          }
+
+
+          row.appendChild(cell);
+
+        });
+
+        dom.layersTableBody.appendChild(row);
+
+      });
+
+      if (hasEditable) {
+        dom.layersSection.classList.remove("hidden");
+      } else {
+        dom.layersSection.classList.add("hidden");
+      }
+
+      renderOtherLayers();
+      pruneUnusedMaterials();
+      renderMaterials();
+
+    }
+
+    function renderOtherLayers() {
+      const tbody = dom.otherLayersTableBody;
+      if (!tbody) {
+        return;
+      }
+      tbody.innerHTML = "";
+      const otherLayers = state.layers
+        .map((layer, layerIndex) => ({ layer, layerIndex }))
+        .filter(({ layer }) => !isConductor(layer.type) && !isDielectric(layer.type));
+      if (otherLayers.length === 0) {
+        dom.otherLayersSection.classList.add("hidden");
+        return;
+      }
+      dom.otherLayersSection.classList.remove("hidden");
+      otherLayers.forEach(({ layer, layerIndex }) => {
+        const row = document.createElement("tr");
+        row.classList.add("other-layer-row");
+        const normalizedMaterial = normalizeMaterialPropValue(layer.material);
+        const normalizedFill = normalizeMaterialPropValue(layer.fillMaterial);
+        row.dataset.index = String(layerIndex);
+        row.dataset.materialName = layer.material || "";
+        row.dataset.fillMaterialName = layer.fillMaterial || "";
+
+        const nameCell = document.createElement("td");
+        nameCell.textContent = layer.name || "";
+        row.appendChild(nameCell);
+
+        const typeCell = document.createElement("td");
+        typeCell.textContent = layer.type || "";
+        row.appendChild(typeCell);
+
+        const materialCell = document.createElement("td");
+        materialCell.textContent = layer.material || "";
+        row.appendChild(materialCell);
+
+        const thicknessCell = document.createElement("td");
+        thicknessCell.classList.add("numeric");
+        thicknessCell.textContent = layer.thickness || "";
+        row.appendChild(thicknessCell);
+
+        const colorCell = document.createElement("td");
+        colorCell.classList.add("color");
+        const normalizedColor = normalizeColorValue(layer.color || "");
+        if (normalizedColor) {
+          const swatch = document.createElement("span");
+          swatch.style.display = "inline-block";
+          swatch.style.width = "1.5rem";
+          swatch.style.height = "1rem";
+          swatch.style.marginRight = "0.5rem";
+          swatch.style.border = "1px solid #c7d2e2";
+          swatch.style.background = normalizedColor;
+          swatch.title = normalizedColor;
+          colorCell.appendChild(swatch);
+          const label = document.createElement("span");
+          label.textContent = normalizedColor;
+          colorCell.appendChild(label);
+        } else {
+          colorCell.textContent = "";
+        }
+        row.appendChild(colorCell);
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateMaterialCell(index, field, value) {}
+
+    function updateLayerCell(index, field, value, options) {
+      const layer = createLayerAt(index);
+      switch (field) {
+
+        case "name":
+        case "type":
+        case "thickness":
+          layer[field] = value;
+          break;
+        case "hurayTopRatio":
+        case "hurayBottomRatio":
+        case "huraySideRatio":
+          layer[field] = normalizeMaterialPropValue(value);
+          break;
+        case "hurayTopRadius":
+        case "hurayBottomRadius":
+        case "huraySideRadius":
+          layer[field] = normalizeHurayRadiusValue(value);
+          break;
+        case "etchFactor":
+          layer.etchFactor = formatEtchFactor(value);
+          break;
+        case "color":
+          layer.color = normalizeColorValue(value) || ensureColorInputValue(value);
+          break;
+        case "material": {
+          const entry = ensureMaterial(value);
+          if (entry) {
+            layer.material = entry.name;
+            assignProps(layer.materialPropsFallback, entry);
+          } else {
+            layer.material = "";
+            assignProps(layer.materialPropsFallback, null);
+          }
+          break;
+        }
+        case "fillMaterial": {
+          const entry = ensureMaterial(value);
+          if (entry) {
+            layer.fillMaterial = entry.name;
+            assignProps(layer.fillMaterialPropsFallback, entry);
+          } else {
+            layer.fillMaterial = "";
+            assignProps(layer.fillMaterialPropsFallback, null);
+          }
+          break;
+        }
+        case "materialPermittivity":
+          setLayerMaterialProperty(layer, "material", "permittivity", value, true);
+          break;
+        case "materialLossTangent":
+          setLayerMaterialProperty(layer, "material", "lossTangent", value, true);
+          break;
+        case "materialConductivity":
+          setLayerMaterialProperty(layer, "material", "conductivity", value, true);
+          break;
+        default:
+          break;
+      }
+    }
+
+    function createLayerAt(index) {
+      while (state.layers.length <= index) {
+        state.layers.push(createEmptyLayer());
+      }
+      return state.layers[index];
+    }
+
+    function renameMaterial(index, newName) {
+      const material = state.materials[index];
+      if (!material) {
+        return;
+      }
+      const trimmed = normalizeMaterialPropValue(newName);
+      const oldName = material.name;
+      if (!trimmed) {
+        unregisterMaterialAliases(material);
+        material.name = "";
+        propagateMaterialDeletion(oldName);
+        return;
+      }
+      if (trimmed === oldName) {
+        registerMaterialAlias(material, trimmed);
+        return;
+      }
+      const existing = findMaterial(trimmed);
+      if (existing && existing !== material) {
+        mergeMaterialEntries(material, existing);
+        transferMaterialAliases(material, existing);
+        state.materials.splice(index, 1);
+        updateLayersMaterialName(oldName, existing.name);
+      } else {
+        unregisterMaterialAliases(material);
+        material.name = trimmed;
+        registerMaterialAlias(material, trimmed);
+        updateLayersMaterialName(oldName, trimmed);
+      }
+    }
+
+    function mergeMaterialEntries(source, target) {
+      ["permittivity", "lossTangent", "conductivity"].forEach((prop) => {
+        if (!target[prop] && source[prop]) {
+          target[prop] = source[prop];
+        }
+      });
+    }
+
+    function updateLayersMaterialName(oldName, newName) {
+      state.layers.forEach((layer) => {
+        if (oldName && layer.material === oldName) {
+          layer.material = newName;
+        }
+        if (oldName && layer.fillMaterial === oldName) {
+          layer.fillMaterial = newName;
+        }
+      });
+    }
+
+    function propagateMaterialToLayers(material) {
+      state.layers.forEach((layer) => {
+        if (material.name && layer.material === material.name) {
+          assignProps(layer.materialPropsFallback, material);
+        }
+        if (material.name && layer.fillMaterial === material.name) {
+          assignProps(layer.fillMaterialPropsFallback, material);
+        }
+      });
+    }
+
+    function propagateMaterialDeletion(oldName) {
+      state.layers.forEach((layer) => {
+        if (layer.material === oldName) {
+          layer.material = "";
+        }
+        if (layer.fillMaterial === oldName) {
+          layer.fillMaterial = "";
+        }
+      });
+    }
+
+    function removeMaterialAtIndex(index) {
+      const material = state.materials[index];
+      if (!material) {
+        return;
+      }
+      const oldName = material.name;
+      unregisterMaterialAliases(material);
+      state.materials.splice(index, 1);
+      propagateMaterialDeletion(oldName);
+    }
+
+    function sanitizeCell(cell) {
+      const cleaned = cell.textContent.replace(/\u00a0/g, " ").replace(/\r?\n+/g, " ");
+      if (cleaned !== cell.textContent) {
+        cell.textContent = cleaned;
+        placeCaretAtEnd(cell);
+      }
+    }
+
+    function setLayerMaterialProperty(layer, target, prop, value, ensure) {
+      const fallbackKey = target === "material" ? "materialPropsFallback" : "fillMaterialPropsFallback";
+      const normalizedValue = normalizeMaterialPropValue(value);
+      layer[fallbackKey][prop] = normalizedValue;
+
+      if (!ensure || (target !== "material" && target !== "fillMaterial")) {
+        return;
+      }
+
+      const desiredProps = {
+        permittivity: normalizeMaterialPropValue(layer[fallbackKey].permittivity),
+        lossTangent: normalizeMaterialPropValue(layer[fallbackKey].lossTangent),
+        conductivity: normalizeMaterialPropValue(layer[fallbackKey].conductivity)
+      };
+
+      const hasAnyValue = desiredProps.permittivity || desiredProps.lossTangent || desiredProps.conductivity;
+
+      if (!hasAnyValue) {
+        assignLayerMaterial(layer, target, null);
+        return;
+      }
+
+      const currentName = target === "material" ? layer.material : layer.fillMaterial;
+      const currentEntry = currentName ? findMaterial(currentName) : null;
+      const existing = findMaterialByProperties(desiredProps);
+      if (existing) {
+        assignLayerMaterial(layer, target, existing);
+        renderMaterials();
+        return;
+      }
+
+      if (currentEntry && countMaterialAssignments(currentEntry.name) === 1) {
+        const oldName = currentEntry.name;
+        currentEntry.permittivity = desiredProps.permittivity;
+        currentEntry.lossTangent = desiredProps.lossTangent;
+        currentEntry.conductivity = desiredProps.conductivity;
+        const generatedName = ensureUniqueMaterialName(buildMaterialNameFromProps(desiredProps));
+        if (generatedName !== oldName) {
+          unregisterMaterialAliases(currentEntry);
+          currentEntry.name = generatedName;
+          registerMaterialAlias(currentEntry, generatedName);
+          updateLayersMaterialName(oldName, generatedName);
+        } else {
+          registerMaterialAlias(currentEntry, generatedName);
+        }
+        assignLayerMaterial(layer, target, currentEntry);
+        renderMaterials();
+        return;
+      }
+
+      const entry = addMaterial({
+        name: buildMaterialNameFromProps(desiredProps),
+        permittivity: desiredProps.permittivity,
+        lossTangent: desiredProps.lossTangent,
+        conductivity: desiredProps.conductivity
+      });
+
+      assignLayerMaterial(layer, target, entry);
+    }
+
+    function ensureMaterial(name) {
+      const trimmed = normalizeMaterialPropValue(name);
+      if (trimmed) {
+        const existing = findMaterial(trimmed);
+        if (existing) {
+          return existing;
+        }
+        const created = addMaterial({ name: trimmed });
+        registerMaterialAlias(created, trimmed);
+        return created;
+      }
+      return addMaterial();
+    }
+
+    function findMaterial(name) {
+      const trimmed = normalizeMaterialPropValue(name);
+      if (!trimmed) {
+        return null;
+      }
+      const lower = trimmed.toLowerCase();
+      const upper = trimmed.toUpperCase();
+      return state.materialMap.get(trimmed)
+        || state.materialMap.get(lower)
+        || state.materialMap.get(upper)
+        || null;
+    }
+
+    function normalizeMaterialPropValue(value) {
+      if (value === undefined || value === null) {
+        return "";
+      }
+      return String(value).trim();
+    }
+
+    function normalizeHurayRadiusValue(value) {
+      const trimmed = (value ?? "").toString().trim();
+      if (!trimmed) {
+        return "";
+      }
+      const numeric = parseFloat(trimmed.replace(/um$/i, "").trim());
+      if (!Number.isFinite(numeric)) {
+        return "";
+      }
+      return numeric.toString();
+    }
+
+    function findMaterialByProperties(props) {
+      for (let index = 0; index < state.materials.length; index += 1) {
+        const material = state.materials[index];
+        if (normalizeMaterialPropValue(material.permittivity) === props.permittivity
+          && normalizeMaterialPropValue(material.lossTangent) === props.lossTangent
+          && normalizeMaterialPropValue(material.conductivity) === props.conductivity) {
+          return material;
+        }
+      }
+      return null;
+    }
+
+    function sanitizeMaterialNamePart(value) {
+      const trimmed = normalizeMaterialPropValue(value);
+      if (!trimmed) {
+        return "x";
+      }
+      const cleaned = trimmed.replace(/[^0-9a-zA-Z.\-]/g, "");
+      return cleaned || "x";
+    }
+
+    function buildMaterialNameFromProps(props) {
+      const parts = [];
+      if (props.permittivity) {
+        parts.push(sanitizeMaterialNamePart(props.permittivity));
+      }
+      if (props.lossTangent) {
+        parts.push(sanitizeMaterialNamePart(props.lossTangent));
+      }
+      if (props.conductivity) {
+        parts.push(sanitizeMaterialNamePart(props.conductivity));
+      }
+      if (parts.length === 0) {
+        return "m";
+      }
+      return `m_${parts.join("_")}`;
+    }
+    function countMaterialAssignments(name) {
+      const normalizedName = normalizeMaterialPropValue(name);
+      if (!normalizedName) {
+        return 0;
+      }
+      let count = 0;
+      for (let index = 0; index < state.layers.length; index += 1) {
+        const candidate = state.layers[index];
+        if (normalizeMaterialPropValue(candidate.material) === normalizedName) {
+          count += 1;
+        }
+        if (normalizeMaterialPropValue(candidate.fillMaterial) === normalizedName) {
+          count += 1;
+        }
+      }
+      return count;
+    }
+    function getLayerNamesUsingMaterial(name) {
+      const normalizedName = normalizeMaterialPropValue(name);
+      if (!normalizedName) {
+        return [];
+      }
+      const seen = new Set();
+      const layersUsing = [];
+      for (let index = 0; index < state.layers.length; index += 1) {
+        const layer = state.layers[index];
+        const normalizedMaterial = normalizeMaterialPropValue(layer.material);
+        const normalizedFill = normalizeMaterialPropValue(layer.fillMaterial);
+        if (normalizedMaterial === normalizedName || normalizedFill === normalizedName) {
+          const layerName = layer.name || "";
+          if (layerName && !seen.has(layerName)) {
+            seen.add(layerName);
+            layersUsing.push(layerName);
+          }
+        }
+      }
+      return layersUsing;
+    }
+
+    function assignLayerMaterial(layer, target, entry) {
+      const fallbackKey = target === "material" ? "materialPropsFallback" : "fillMaterialPropsFallback";
+      if (!entry) {
+        if (target === "material") {
+          layer.material = "";
+        } else {
+          layer.fillMaterial = "";
+        }
+        assignProps(layer[fallbackKey], null);
+        return;
+      }
+      if (target === "material") {
+        layer.material = entry.name;
+      } else {
+        layer.fillMaterial = entry.name;
+      }
+      assignProps(layer[fallbackKey], entry);
+    }
+
+    function commitLayerMaterial(layer, target) {
+      const name = target === "material" ? layer.material : layer.fillMaterial;
+      const trimmed = normalizeMaterialPropValue(name);
+      if (!trimmed) {
+        assignLayerMaterial(layer, target, null);
+        return;
+      }
+      const entry = ensureMaterial(trimmed);
+      assignLayerMaterial(layer, target, entry);
+    }
+
+    function getLayerMaterialValue(layer, target, prop) {
+
+      const name = target === "material" ? layer.material : layer.fillMaterial;
+
+      const entry = findMaterial(name);
+
+      if (entry && entry[prop]) {
+        return entry[prop];
+      }
+
+      const fallback = target === "material" ? "materialPropsFallback" : "fillMaterialPropsFallback";
+
+      return fallback[prop] || "";
+
+    }
+
+    function assignProps(target, source) {
+
+      if (!target) {
+        return;
+      }
+
+      if (!source) {
+        target.permittivity = "";
+        target.lossTangent = "";
+        target.conductivity = "";
+        return;
+      }
+
+      target.permittivity = source.permittivity || "";
+      target.lossTangent = source.lossTangent || "";
+      target.conductivity = source.conductivity || "";
+    }
+
+    function formatEtchFactor(value) {
+      const trimmed = (value || "").trim();
+      if (!trimmed) {
+        return "";
+      }
+      const number = Number(trimmed);
+      if (!Number.isFinite(number)) {
+        return trimmed;
+      }
+      return number.toFixed(3);
+    }
+
+    function normalizeColorValue(value) {
+      const trimmed = (value || "").trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+        return trimmed.toLowerCase();
+      }
+      if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+        return `#${trimmed.toLowerCase()}`;
+      }
+      return "";
+    }
+
+    function ensureColorInputValue(value) {
+      return normalizeColorValue(value) || "#000000";
+    }
+
+    function autoAssignFillMaterials() {
+      for (let index = 0; index < state.layers.length; index += 1) {
+        const layer = state.layers[index];
+        if (!isConductor(layer.type)) {
+          continue;
+        }
+        const candidates = getAdjacentDielectricMaterials(index);
+        if (candidates.length === 0) {
+          if (layer.fillMaterial) {
+            layer.fillMaterial = "";
+          }
+          assignProps(layer.fillMaterialPropsFallback, null);
+          continue;
+        }
+        const normalizedCandidates = candidates.map((name) => normalizeMaterialPropValue(name));
+        const normalizedCurrent = normalizeMaterialPropValue(layer.fillMaterial);
+        let desiredName = "";
+        if (normalizedCurrent) {
+          const matchIndex = normalizedCandidates.findIndex((candidate) => candidate === normalizedCurrent);
+          if (matchIndex !== -1) {
+            desiredName = candidates[matchIndex];
+          }
+        }
+        if (!desiredName) {
+          desiredName = candidates[0];
+        }
+        const entry = ensureMaterial(desiredName);
+        if (layer.fillMaterial !== entry.name) {
+          layer.fillMaterial = entry.name;
+        }
+        assignProps(layer.fillMaterialPropsFallback, entry);
+      }
+    }
+
+    function findDielectricAbove(index) {
+      for (let i = index - 1; i >= 0; i -= 1) {
+        const candidate = state.layers[i];
+        if (isDielectric(candidate.type)) {
+          return candidate;
+        }
+      }
+      return null;
+    }
+
+    function findDielectricBelow(index) {
+      for (let i = index + 1; i < state.layers.length; i += 1) {
+        const candidate = state.layers[i];
+        if (isDielectric(candidate.type)) {
+          return candidate;
+        }
+      }
+      return null;
+    }
+
+    function getAdjacentDielectricMaterials(index) {
+      const materials = [];
+      const above = findDielectricAbove(index);
+      if (above && above.material) {
+        materials.push(above.material);
+      }
+      const below = findDielectricBelow(index);
+      if (below && below.material) {
+        const normalizedBelow = normalizeMaterialPropValue(below.material);
+        const alreadyPresent = materials.some((name) => normalizeMaterialPropValue(name) === normalizedBelow);
+        if (!alreadyPresent) {
+          materials.push(below.material);
+        }
+      }
+      return materials;
+    }
+
+    function isConductor(type) {
+      return normalizeLayerType(type) === "conductor";
+    }
+
+    function isDielectric(type) {
+      return normalizeLayerType(type) === "dielectric";
+    }
+
+    function normalizeLayerType(type) {
+      return (type || "").trim().toLowerCase();
+    }
+
+    function generateMaterialName() {
+      const prefix = "MAT";
+      let counter = 1;
+      let candidate = `${prefix}${String(counter).padStart(3, "0")}`;
+      while (state.materialMap.has(candidate)) {
+        counter += 1;
+        candidate = `${prefix}${String(counter).padStart(3, "0")}`;
+      }
+      return candidate;
+    }
+
+    function generateMaterialId() {
+
+      state.materialIdCounter += 1;
+      return "mat_" + state.materialIdCounter;
+    }
+
+    function placeCaretAtEnd(element) {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      range.collapse(false);
+      const selection = window.getSelection();
+      if (!selection) {
+        return;
+      }
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function moveFocus(currentCell, rowOffset) {
+      const rowElement = currentCell.closest("tr");
+      if (!rowElement) {
+        return;
+      }
+      const index = Number(rowElement.dataset.index || "-1");
+      if (Number.isNaN(index) || index < 0) {
+        return;
+      }
+      const field = currentCell.dataset.field;
+      if (!field) {
+        return;
+      }
+      const targetRow = index + rowOffset;
+      if (targetRow < 0) {
+        return;
+      }
+      if (targetRow >= state.layers.length) {
+        while (state.layers.length <= targetRow) {
+          state.layers.push(createEmptyLayer());
+        }
+        renderLayers();
+      }
+      const selector = 'tr[data-index="' + targetRow + '"] td[data-field="' + field + '"]';
+      const targetCell = dom.layersTableBody.querySelector(selector);
+      if (targetCell) {
+        targetCell.focus();
+      }
+    }
+    function applyMatrixToLayers(startRow, startField, matrix) {
+      for (let r = 0; r < matrix.length; r += 1) {
+        const rowIndex = startRow + r;
+        const row = createLayerAt(rowIndex);
+        const rowData = matrix[r];
+        for (let c = 0; c < rowData.length; c += 1) {
+          const fieldIndex = startField + c;
+          if (fieldIndex >= layerFieldDescriptors.length) {
+            break;
+          }
+          const descriptor = layerFieldDescriptors[fieldIndex];
+          const value = rowData[c] ? rowData[c].trim() : "";
+          updateLayerCell(rowIndex, descriptor.key, value, { ensureMaterial: true });
+        }
+        commitLayerMaterial(row, "material");
+        commitLayerMaterial(row, "fillMaterial");
+      }
+      renderMaterials();
+      renderLayers();
+    }
+
+    function applyMatrixToMaterials(startRow, startField, matrix) {
+      for (let r = 0; r < matrix.length; r += 1) {
+        const rowIndex = startRow + r;
+        while (state.materials.length <= rowIndex) {
+          addMaterial();
+        }
+        const rowData = matrix[r];
+        for (let c = 0; c < rowData.length; c += 1) {
+          const fieldIndex = startField + c;
+          if (fieldIndex >= materialFieldDescriptors.length) {
+            break;
+          }
+          const descriptor = materialFieldDescriptors[fieldIndex];
+          const value = rowData[c] ? rowData[c].trim() : "";
+          updateMaterialCell(rowIndex, descriptor.key, value);
+        }
+      }
+      renderMaterials();
+      renderLayers();
+    }
+
+    function readDouble(parent, childTag) {
+      const container = findChildElement(parent, childTag);
+      if (!container) {
+        return "";
+      }
+      const doubleNode = findChildElement(container, "Double");
+      return doubleNode && doubleNode.textContent ? doubleNode.textContent.trim() : "";
+    }
+
+    function readHuray(layerNode, tagName, attribute) {
+      const node = findChildElement(layerNode, tagName);
+      if (!node) {
+        return "";
+      }
+      const attr = node.getAttribute(attribute);
+      if (!attr) {
+        return "";
+      }
+      if (attribute === "NoduleRadius") {
+        return normalizeHurayRadiusValue(attr);
+      }
+      return normalizeMaterialPropValue(attr);
+    }
+
+    function buildXml() {
+      const namespace = "http://www.ansys.com/control";
+      const doc = document.implementation.createDocument(namespace, "c:Control", null);
+      const control = doc.documentElement;
+      control.setAttribute("schemaVersion", "1.0");
+
+      const stackup = doc.createElement("Stackup");
+      stackup.setAttribute("schemaVersion", "1.0");
+      control.appendChild(stackup);
+
+      const materials = doc.createElement("Materials");
+      stackup.appendChild(materials);
+
+      const uniqueMaterials = new Map();
+      state.materials.forEach((material) => {
+        const name = (material.name || "").trim();
+        if (!name || uniqueMaterials.has(name)) {
+          return;
+        }
+        uniqueMaterials.set(name, true);
+        const materialNode = doc.createElement("Material");
+        materialNode.setAttribute("Name", name);
+        appendDoubleElement(doc, materialNode, "Permittivity", material.permittivity);
+        appendDoubleElement(doc, materialNode, "DielectricLossTangent", material.lossTangent);
+        appendDoubleElement(doc, materialNode, "Conductivity", material.conductivity);
+        materials.appendChild(materialNode);
+      });
+
+      state.layers.forEach((layer) => {
+        ["material", "fillMaterial"].forEach((target) => {
+          const name = (layer[target] || "").trim();
+          if (!name || uniqueMaterials.has(name)) {
+            return;
+          }
+          const fallback = target === "material" ? "materialPropsFallback" : "fillMaterialPropsFallback";
+          const materialNode = doc.createElement("Material");
+          materialNode.setAttribute("Name", name);
+          appendDoubleElement(doc, materialNode, "Permittivity", fallback.permittivity);
+          appendDoubleElement(doc, materialNode, "DielectricLossTangent", fallback.lossTangent);
+          appendDoubleElement(doc, materialNode, "Conductivity", fallback.conductivity);
+          materials.appendChild(materialNode);
+          uniqueMaterials.set(name, true);
+        });
+      });
+
+      const layers = doc.createElement("Layers");
+      if (state.lengthUnit.trim()) {
+        layers.setAttribute("LengthUnit", state.lengthUnit.trim());
+      }
+      stackup.appendChild(layers);
+
+      state.layers.forEach((layer) => {
+        const layerNode = doc.createElement("Layer");
+        setAttributeIfValue(layerNode, "Name", layer.name);
+        setAttributeIfValue(layerNode, "Type", layer.type);
+        setAttributeIfValue(layerNode, "Material", layer.material);
+        setAttributeIfValue(layerNode, "FillMaterial", layer.fillMaterial);
+        setAttributeIfValue(layerNode, "Thickness", layer.thickness);
+        setAttributeIfValue(layerNode, "EtchFactor", layer.etchFactor);
+        setAttributeIfValue(layerNode, "Color", layer.color);
+
+        appendHuray(doc, layerNode, "HuraySurfaceRoughness", layer.hurayTopRatio, layer.hurayTopRadius);
+        appendHuray(doc, layerNode, "HurayBottomSurfaceRoughness", layer.hurayBottomRatio, layer.hurayBottomRadius);
+        appendHuray(doc, layerNode, "HuraySideSurfaceRoughness", layer.huraySideRatio, layer.huraySideRadius);
+
+        layers.appendChild(layerNode);
+      });
+
+      const serializer = new XMLSerializer();
+      const raw = serializer.serializeToString(doc);
+      const formatted = formatXml(raw.replace(/^<\?xml[^>]*>/, ""));
+      return '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + formatted;
+    }
+
+    function appendDoubleElement(doc, parent, tagName, value) {
+      const trimmed = value && value.toString ? value.toString().trim() : "";
+      if (!trimmed) {
+        return;
+      }
+      const container = doc.createElement(tagName);
+      const doubleNode = doc.createElement("Double");
+      doubleNode.textContent = trimmed;
+      container.appendChild(doubleNode);
+      parent.appendChild(container);
+    }
+
+    function setAttributeIfValue(node, attribute, value) {
+      const trimmed = value && value.toString ? value.toString().trim() : "";
+      if (!trimmed) {
+        return;
+      }
+      node.setAttribute(attribute, trimmed);
+    }
+
+    function appendHuray(doc, parent, tagName, ratio, radius) {
+      const ratioValue = normalizeMaterialPropValue(ratio);
+      const radiusValue = normalizeHurayRadiusValue(radius);
+      if (!ratioValue && !radiusValue) {
+        return;
+      }
+      const node = doc.createElement(tagName);
+      if (ratioValue) {
+        node.setAttribute("HallHuraySurfaceRatio", ratioValue);
+      }
+      if (radiusValue) {
+        node.setAttribute("NoduleRadius", `${radiusValue}um`);
+      }
+      parent.appendChild(node);
+    }
+
+    function formatXml(xml) {
+      const padding = "  ";
+      let formatted = "";
+      let pad = 0;
+      xml
+        .replace(/>\s+</g, "><")
+        .split(/(?=<)/g)
+        .map((node) => node.trim())
+        .filter((node) => node.length > 0)
+        .forEach((node) => {
+          if (node.indexOf("</") === 0) {
+            pad = Math.max(pad - 1, 0);
+          }
+          formatted += padding.repeat(pad) + node + "\n";
+          if (node.indexOf("</") !== 0 && node.indexOf("/>") !== node.length - 2 && node.indexOf("</") === -1) {
+            pad += 1;
+          }
+        });
+      return formatted.trim();
+    }
+
+    function findChildElement(parent, tagName) {
+      if (!parent) {
+        return null;
+      }
+      const nodes = parent.children || [];
+      for (let i = 0; i < nodes.length; i += 1) {
+        const child = nodes[i];
+        if (!tagName || child.localName === tagName) {
+          return child;
+        }
+      }
+      return null;
+    }
+
+    function findChildElements(parent, tagName) {
+      const result = [];
+      if (!parent) {
+        return result;
+      }
+      const nodes = parent.children || [];
+      for (let i = 0; i < nodes.length; i += 1) {
+        const child = nodes[i];
+        if (!tagName || child.localName === tagName) {
+          result.push(child);
+        }
+      }
+      return result;
+    }
+  </script>
+</body>
+</html>
