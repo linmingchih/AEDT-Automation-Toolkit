@@ -11,7 +11,9 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QTextEdit,
 )
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QDesktopServices
+from PySide6.QtCore import QUrl
+
 
 class MainApplicationWindow(QMainWindow):
     BASE_TITLE = "AEDT Automation Toolkit"
@@ -32,7 +34,12 @@ class MainApplicationWindow(QMainWindow):
         # --- Menu Bar ---
         menu_bar = self.menuBar()
         self.apps_menu = menu_bar.addMenu("Apps")
+        self.tools_menu = menu_bar.addMenu("Tools")
         self.options_menu = menu_bar.addMenu("Options")
+
+        self.stackup_editor_action = QAction("Stackup Editor", self)
+        self.stackup_editor_action.triggered.connect(self.open_stackup_editor)
+        self.tools_menu.addAction(self.stackup_editor_action)
 
         self.help_action = QAction("Help", self, checkable=True)
         self.help_action.toggled.connect(self.toggle_help_tab)
@@ -58,6 +65,17 @@ class MainApplicationWindow(QMainWindow):
         # Load the first discovered app by default
         if self.first_app_name:
             self.switch_app(self.first_app_name)
+
+    def open_stackup_editor(self):
+        """
+        Opens the stackup editor HTML file in the default web browser.
+        """
+        editor_path = os.path.join(os.path.dirname(__file__), "tools", "stackup_editor.html")
+        if os.path.exists(editor_path):
+            url = QUrl.fromLocalFile(os.path.abspath(editor_path))
+            QDesktopServices.openUrl(url)
+        else:
+            self.log_window.append(f"Error: Could not find stackup editor at {editor_path}")
 
     def discover_apps(self):
         """
