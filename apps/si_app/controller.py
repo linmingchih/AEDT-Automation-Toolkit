@@ -236,6 +236,18 @@ class AppController(QObject):
                 new_aedb_path = os.path.splitext(layout_path)[0] + ".aedb"
                 import_tab.layout_path_label.setText(new_aedb_path)
                 self.log(f"Design path has been updated to: {new_aedb_path}")
+
+            # Populate the imported stackup path from the project file
+            if import_tab and self.project_file and os.path.exists(self.project_file):
+                try:
+                    with open(self.project_file, "r") as f:
+                        project_data = json.load(f)
+                    imported_xml = project_data.get("xml_path", "")
+                    import_tab.imported_stackup_path.setText(imported_xml)
+                    self.log(f"Imported stackup path loaded: {imported_xml}")
+                except (IOError, json.JSONDecodeError) as e:
+                    self.log(f"Error reading project file to get imported stackup: {e}", "red")
+
             self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
             port_setup_tab = self.tabs.get("port_setup_tab")
             if port_setup_tab:
@@ -270,6 +282,10 @@ class AppController(QObject):
             self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
             self.log("CCT calculation finished.")
             self._refresh_cct_tabs()
+
+        elif task_type == "modify_xml":
+            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
+            self.log("Stackup modification process finished.")
 
         elif task_type == "get_loss":
             self.log("Successfully got loss data. Generating HTML report...")
