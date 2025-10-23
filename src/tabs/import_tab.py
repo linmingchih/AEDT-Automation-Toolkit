@@ -1,6 +1,7 @@
 import os
 import shutil
 import sys
+import json
 from datetime import datetime
 
 from PySide6.QtWidgets import (
@@ -136,9 +137,6 @@ class ImportTab(QWidget):
 
             layout_path = dest_path
             controller.project_file = os.path.join(session_dir, "project.json")
-            controller.log(
-                f"Project file will be created at: {controller.project_file}"
-            )
 
             stackup_path = self.stackup_path_input.text()
             if stackup_path and os.path.exists(stackup_path):
@@ -150,8 +148,20 @@ class ImportTab(QWidget):
             else:
                 stackup_path = ""
 
+            # Write initial project data to the JSON file
+            edb_version = self.edb_version_input.text()
+            project_data = {
+                "aedb_path": layout_path,
+                "edb_version": edb_version,
+                "stackup_path": stackup_path,
+                "app_name": controller.app_name,
+            }
+            with open(controller.project_file, "w") as f:
+                json.dump(project_data, f, indent=4)
+            controller.log(f"Initial project file created: {controller.project_file}")
+
         except Exception as exc:
-            controller.log(f"Error preparing temp folder: {exc}", "red")
+            controller.log(f"Error preparing temp folder or project file: {exc}", "red")
             return
 
         controller.log(f"Opening layout: {layout_path}")
@@ -161,14 +171,10 @@ class ImportTab(QWidget):
         action_spec = controller.get_action_spec("get_edb", tab_name="import_tab")
         script_path = action_spec["script"]
         python_executable = sys.executable
-        edb_version = self.edb_version_input.text()
 
         command = [
             python_executable,
             script_path,
-            layout_path,
-            edb_version,
-            stackup_path,
             controller.project_file,
         ]
         if action_spec.get("args"):

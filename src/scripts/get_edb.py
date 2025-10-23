@@ -1,56 +1,76 @@
 import sys
 import os
-from pyaedt import Edb
 import json
 from collections import defaultdict
+from pyaedt import Edb
 
-design_path = sys.argv[1]
-edb_version = sys.argv[2]
-xml_path = sys.argv[3]
-project_file = sys.argv[4]
+# Expects a single argument: the path to the project.json file
+if len(sys.argv) != 2:
+    print("Usage: python get_edb.py <project_file_path>")
+    sys.exit(1)
 
-print(sys.argv)
-# edb_path = '../data2/Galileo_G87173_204.brd'
-# edb_version = '2024.1'
-# xml_path = ''
+project_file = sys.argv[1]
+
+if not os.path.exists(project_file):
+    print(f"Error: Project file not found at {project_file}")
+    sys.exit(1)
+
+try:
+    with open(project_file, "r") as f:
+        project_data = json.load(f)
+except json.JSONDecodeError:
+    print(f"Error: Could not decode JSON from {project_file}")
+    sys.exit(1)
+
+# Read parameters from the JSON file
+design_path = project_data.get("aedb_path")
+edb_version = project_data.get("edb_version")
+input_xml_path = project_data.get("stackup_path")
+
+if not design_path:
+    print("Error: 'aedb_path' not found in project file.")
+    sys.exit(1)
+
+print(f"Processing design: {design_path}")
+if edb_version:
+    print(f"Using EDB version: {edb_version}")
+if input_xml_path:
+    print(f"Using stackup file: {input_xml_path}")
 
 edb = Edb(design_path, edbversion=edb_version)
 
-if xml_path:
-    edb.stackup.load(xml_path)
+if input_xml_path:
+    edb.stackup.load(input_xml_path)
     edb.save()
 
-xml_path = edb.edbpath.replace('.aedb', '.xml')
-edb.stackup.export(xml_path)
+# Export the stackup from EDB to a new XML file
+exported_xml_path = edb.edbpath.replace('.aedb', '.xml')
+edb.stackup.export(exported_xml_path)
 
-#%%
+# Extract component and differential pair information
 info = {}
 info['component'] = defaultdict(list)
 for component_name, component in edb.components.components.items():
-    for pin_name, pin in component.pins.items(): 
-        info['component'][component_name].append((pin_name, pin.net_name)) 
+    for pin_name, pin in component.pins.items():
+        info['component'][component_name].append((pin_name, pin.net_name))
 
-#%%
 info['diff'] = {}
-for differential_pair_name, differential_pair in edb.differential_pairs.items.items(): 
-    pos = differential_pair.positive_net.name
-    neg = differential_pair.negative_net.name
-    info['diff'][differential_pair_name] = (pos, neg)
-    
-project_data = {}
-if os.path.exists(project_file):
-    with open(project_file, "r") as f:
-        project_data = json.load(f)
+for dp_name, dp in edb.differential_pairs.items.items():
+    pos_net = dp.positive_net.name
+    neg_net = dp.negative_net.name
+    info['diff'][dp_name] = (pos_net, neg_net)
 
-project_data['xml_path'] = xml_path
+# Update the project data dictionary
+project_data['xml_path'] = exported_xml_path
 project_data["pcb_data"] = info
 project_data["ports"] = []
 project_data["cct_ports_ready"] = False
 project_data.pop("cct_path", None)
 
-os.makedirs(os.path.dirname(project_file), exist_ok=True)
+# Write the updated data back to the project file
 with open(project_file, 'w') as f:
-    json.dump(project_data, f, indent=3)
-
+    json.dump(project_data, f, indent=4)
 
 edb.close_edb()
+
+print(f"Successfully processed EDB and updated {project_file}")
