@@ -121,8 +121,7 @@ class ImportTab(QWidget):
             os.makedirs(temp_root, exist_ok=True)
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            design_name = os.path.splitext(os.path.basename(layout_path))[0]
-            session_dir_name = f"{design_name}_{timestamp}"
+            session_dir_name = f"{controller.app_name}_{timestamp}"
             session_dir = os.path.join(temp_root, session_dir_name)
             os.makedirs(session_dir)
             controller.log(f"Created session directory: {session_dir}")
