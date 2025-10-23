@@ -2,7 +2,7 @@ import sys
 import os
 import json
 from collections import defaultdict
-from pyaedt import Edb
+from pyedb import Edb
 
 # Expects a single argument: the path to the project.json file
 if len(sys.argv) != 2:
@@ -37,7 +37,7 @@ if edb_version:
 if input_xml_path:
     print(f"Using stackup file: {input_xml_path}")
 
-edb = Edb(design_path, edbversion=edb_version)
+edb = Edb(design_path, version=edb_version)
 
 if input_xml_path:
     edb.stackup.load(input_xml_path)

@@ -1,5 +1,5 @@
 import sys
-from pyaedt import Edb
+from pyedb import Edb
 import json
 
 project_file = sys.argv[1]
@@ -10,7 +10,7 @@ with open(project_file) as f:
     info = json.load(f)
 
 
-edb = Edb(info['aedb_path'], edbversion=edb_version)
+edb = Edb(info['aedb_path'], version=edb_version)
 
 
 ref_terminals = {}
