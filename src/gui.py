@@ -45,6 +45,10 @@ class MainApplicationWindow(QMainWindow):
         self.help_action.toggled.connect(self.toggle_help_tab)
         self.options_menu.addAction(self.help_action)
 
+        self.license_action = QAction("License", self, checkable=True)
+        self.license_action.toggled.connect(self.toggle_license_tab)
+        self.options_menu.addAction(self.license_action)
+
         # Tabs
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
@@ -179,6 +183,9 @@ class MainApplicationWindow(QMainWindow):
                 if self.help_action.isChecked():
                     self.toggle_help_tab(True)
 
+                if self.license_action.isChecked():
+                    self.toggle_license_tab(True)
+
         except Exception as e:
             self._update_window_title()
             self.log_window.setText(f"Error loading tabs for '{app_name}': {e}")
@@ -214,6 +221,26 @@ class MainApplicationWindow(QMainWindow):
             self.tabs.setCurrentIndex(self.tabs.count() - 1)
         except Exception as e:
             self.log_window.append(f"Could not load help tab: {e}")
+
+    def toggle_license_tab(self, enabled):
+        """Shows or hides the license tab."""
+        LICENSE_TAB_NAME = "License"
+        # First, remove any existing license tab to ensure a clean state
+        for i in range(self.tabs.count()):
+            if self.tabs.tabText(i) == LICENSE_TAB_NAME:
+                self.tabs.removeTab(i)
+                break
+
+        if not enabled:
+            return
+
+        try:
+            from tabs.license_tab import LicenseTab
+            license_tab = LicenseTab(self.current_controller)
+            self.tabs.addTab(license_tab, LICENSE_TAB_NAME)
+            self.tabs.setCurrentIndex(self.tabs.count() - 1)
+        except Exception as e:
+            self.log_window.append(f"Could not load license tab: {e}")
 
     def closeEvent(self, event):
         if self.current_controller and hasattr(self.current_controller, "save_config"):

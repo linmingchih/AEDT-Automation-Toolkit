@@ -397,6 +397,16 @@ class AppController(QObject):
             env=action_spec.get("env"),
         )
 
+    def get_global_settings(self):
+        """Load global settings."""
+        return self.state_store.load("_global")
+
+    def set_global_setting(self, key, value):
+        """Save a global setting."""
+        settings = self.get_global_settings()
+        settings[key] = value
+        self.state_store.save("_global", settings)
+
     def get_config_path(self):
         return os.path.join(os.path.dirname(__file__), "config.json")
 
