@@ -132,10 +132,11 @@ Scripts communicate through the shared `project.json`, so each stage enriches th
    - Throughout, stdout/stderr from scripts is streamed into the shared log pane. Buttons are disabled/enabled automatically to avoid duplicate submissions.
 
 ## 8. Configuration & Persistence
-- **App config (`apps/<app>/config.json`).** Declares display name, tab order, and optional defaults. Example (SI app):
+- **App config (`apps/<app>/config.json`).** Declares display name, a description, tab order, and optional defaults. The `description` is a short string summarizing the app's purpose, which the main GUI displays in the information panel when the app is selected. Example (SI app):
   ```json
   {
     "display_name": "SI Automation Flow",
+    "description": "A general-purpose Signal Integrity (SI) analysis flow.",
     "tabs": [
       "import_tab",
       "port_setup_tab",

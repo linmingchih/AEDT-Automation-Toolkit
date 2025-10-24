@@ -159,6 +159,13 @@ class MainApplicationWindow(QMainWindow):
                 })
                 self.apps[app_name] = app_meta
                 self._update_window_title(display_name)
+
+                # Update the information panel with the app's description
+                self.log_window.clear()
+                description = config.get("description")
+                if description:
+                    self.log_window.setText(description)
+
                 tabs_config = config.get("tabs", {})
                 
                 loaded_tabs = {}

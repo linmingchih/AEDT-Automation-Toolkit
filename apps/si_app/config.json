@@ -1,5 +1,6 @@
 {
   "display_name": "SI Automation Flow",
+  "description": "A general-purpose Signal Integrity (SI) analysis flow. This application guides you through importing a design, setting up ports, running simulations, and generating results.",
   "tabs": {
     "import_tab": "Import",
     "port_setup_tab": "Port Setup",

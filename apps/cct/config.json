@@ -1,5 +1,6 @@
 {
   "display_name": "CCT Flow",
+  "description": "Component-level Crosstalk (CCT) analysis flow. Use this application to import a design, configure ports, and run CCT simulations to analyze crosstalk between components.",
   "tabs": {
     "import_tab": "Import",
     "port_setup_tab": "Port Setup",
