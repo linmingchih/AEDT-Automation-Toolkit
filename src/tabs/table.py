@@ -92,7 +92,7 @@ class Table(QWidget):
         csv_path = project_data.get("cct_path")
         self.csv_path_input.setText(csv_path or "")
         if not csv_path:
-            self._log("CCT CSV path not found in project file.", "orange")
+            self.status_label.setText("CCT CSV path not found in project file.")
             self._clear_table()
             return
 
