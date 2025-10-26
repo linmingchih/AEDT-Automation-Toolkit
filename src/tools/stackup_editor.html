@@ -376,6 +376,7 @@
         <label for="fileInput" class="button-lookalike">Select XML File</label>
         <span id="fileName" class="file-name-display"></span>
       </div>
+      <button id="newStackup" class="secondary">New Stackup</button>
       <button id="downloadXml" disabled>Download Edited XML</button>
       <button id="toggleHelpBtn" class="secondary" style="margin-left: auto;">Show Help</button>
     </header>
@@ -485,6 +486,7 @@
     };
 
     const dom = {
+      newStackup: document.getElementById("newStackup"),
       fileInput: document.getElementById("fileInput"),
       downloadXml: document.getElementById("downloadXml"),
       materialsSection: document.getElementById("materialsSection"),
@@ -1005,6 +1007,78 @@
         renderLayers();
       }
     });
+    dom.newStackup.addEventListener("click", createNewStackup);
+
+    function createNewStackup() {
+      const numConductorsStr = prompt("Enter the total number of signal (conductor) layers:", "4");
+      if (numConductorsStr === null) {
+        return; // User cancelled
+      }
+
+      const numConductors = parseInt(numConductorsStr, 10);
+      if (isNaN(numConductors) || numConductors < 1) {
+        alert("Please enter a valid positive number for the layer count.");
+        return;
+      }
+
+      resetState();
+      state.lengthUnit = "mil";
+      dom.lengthUnit.value = state.lengthUnit;
+
+      const copper = addMaterial({ name: "COPPER", conductivity: "5.8e7" });
+      const fr4 = addMaterial({ name: "FR-4", permittivity: "4.2", lossTangent: "0.018" });
+
+      const conductorColors = [
+        "#E63946", // Imperial Red
+        "#F4A261", // Sandy Brown
+        "#2A9D8F", // Persian Green
+        "#264653", // Charcoal
+        "#E9C46A", // Saffron
+        "#F77F00", // Tangerine
+        "#8338EC", // Blue Violet
+        "#3A86FF"  // Ultramarine Blue
+      ];
+
+      for (let i = 1; i <= numConductors; i++) {
+        // Dielectric first
+        const dielectricLayer = createEmptyLayer();
+        dielectricLayer.name = `D${i}`;
+        dielectricLayer.type = "DIELECTRIC";
+        dielectricLayer.material = fr4.name;
+        dielectricLayer.thickness = "5.0";
+        assignProps(dielectricLayer.materialPropsFallback, fr4);
+        state.layers.push(dielectricLayer);
+
+        // Then Conductor
+        const conductorLayer = createEmptyLayer();
+        conductorLayer.name = `L${i}`;
+        conductorLayer.type = "CONDUCTOR";
+        conductorLayer.material = copper.name;
+        conductorLayer.thickness = "1.2";
+        conductorLayer.color = conductorColors[(i - 1) % conductorColors.length];
+        assignProps(conductorLayer.materialPropsFallback, copper);
+        state.layers.push(conductorLayer);
+      }
+
+      // Add final dielectric at the bottom
+      const bottomDielectric = createEmptyLayer();
+      bottomDielectric.name = `D${numConductors + 1}`;
+      bottomDielectric.type = "DIELECTRIC";
+      bottomDielectric.material = fr4.name;
+      bottomDielectric.thickness = "5.0";
+      assignProps(bottomDielectric.materialPropsFallback, fr4);
+      state.layers.push(bottomDielectric);
+
+
+      dom.materialsSection.classList.remove("hidden");
+      dom.layersSection.classList.remove("hidden");
+      dom.downloadXml.disabled = false;
+      dom.fileNameDisplay.textContent = `New ${numConductors}-Conductor Stackup`;
+
+      renderMaterials();
+      renderLayers();
+    }
+
     function loadXml(xmlText) {
       resetState();
       const parser = new DOMParser();
