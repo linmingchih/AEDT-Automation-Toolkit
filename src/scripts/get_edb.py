@@ -61,6 +61,8 @@ for dp_name, dp in edb.differential_pairs.items.items():
     info['diff'][dp_name] = (pos_net, neg_net)
 
 # Update the project data dictionary
+if design_path.lower().endswith(".brd"):
+    project_data["aedb_path"] = edb.edbpath
 project_data['xml_path'] = exported_xml_path
 project_data["pcb_data"] = info
 project_data["ports"] = []

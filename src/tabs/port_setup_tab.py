@@ -444,6 +444,9 @@ class PortSetupTab(QWidget):
             script_path = action_spec["script"]
             python_executable = sys.executable
             edb_version = import_tab.edb_version_input.text()
+            if not edb_version:
+                edb_version = project_data.get("edb_version", "")
+
             command = [
                 python_executable,
                 script_path,
