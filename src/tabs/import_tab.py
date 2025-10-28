@@ -247,7 +247,7 @@ class ImportTab(QWidget):
         controller._submit_task(
             command,
             metadata=metadata,
-            input_path=layout_path,
+            input_path=controller.project_file,
             output_path=controller.project_file,
             description=metadata["description"],
         )

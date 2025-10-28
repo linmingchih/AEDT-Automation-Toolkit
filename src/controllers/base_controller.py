@@ -17,6 +17,7 @@ class BaseAppController(QObject):
         super().__init__()
         self.app_name = app_name
         self.project_file = None
+        self.project_log_path = None
         self.report_path = None
         self.pcb_data = None
         self.log_window = None  # This will be set by the GUI
@@ -39,6 +40,17 @@ class BaseAppController(QObject):
         self.current_layout_path = None
         self.current_aedb_path = None
 
+    def set_project_log_path(self, project_json_path):
+        """Sets the path for the project-specific log file."""
+        if project_json_path:
+            log_dir = os.path.dirname(project_json_path)
+            log_name = os.path.splitext(os.path.basename(project_json_path))[0] + ".log"
+            self.project_log_path = os.path.join(log_dir, log_name)
+            # Optional: Write an initial message to create the log file
+            self.log_message(f"Project log initialized at: {self.project_log_path}")
+        else:
+            self.project_log_path = None
+
     def connect_signals(self, tabs):
         """Connect signals for all tabs provided by the GUI."""
         self.tabs = tabs or {}
@@ -47,15 +59,30 @@ class BaseAppController(QObject):
             if callable(binder):
                 binder()
 
-    def log(self, message, color=None):
-        """Log a message to the GUI's log window."""
-        if not self.log_window:
-            return
-        if color:
-            self.log_window.setTextColor(QColor(color))
-        self.log_window.append(message)
-        self.log_window.setTextColor(QColor("black"))
-        self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
+    def log_message(self, message, color=None):
+        """Log a message to the GUI's log window and the project log file."""
+        # Log to GUI
+        if self.log_window:
+            if color:
+                self.log_window.setTextColor(QColor(color))
+            self.log_window.append(message)
+            self.log_window.setTextColor(QColor("black"))
+            self.log_window.verticalScrollBar().setValue(self.log_window.verticalScrollBar().maximum())
+
+        # Log to file
+        if self.project_log_path:
+            try:
+                with open(self.project_log_path, "a", encoding="utf-8") as f:
+                    f.write(message + "\n")
+            except IOError as e:
+                # If logging to file fails, log an error to the GUI
+                error_msg = f"CRITICAL: Could not write to log file {self.project_log_path}. Error: {e}"
+                if self.log_window:
+                    self.log_window.setTextColor(QColor("red"))
+                    self.log_window.append(error_msg)
+                    self.log_window.setTextColor(QColor("black"))
+
+    log = log_message  # Alias for backward compatibility
 
     # ------------------------------------------------------------------ #
     # External task coordination helpers
@@ -89,6 +116,12 @@ class BaseAppController(QObject):
         description=None,
         env=None,
     ):
+        # Set the project file and log path as soon as a task with an input path is submitted.
+        # This ensures that all subsequent logging for this project context is captured.
+        if input_path and os.path.exists(input_path):
+            self.project_file = input_path
+            self.set_project_log_path(input_path)
+
         try:
             task_id, _ = self.script_runner.run_task(
                 command,
