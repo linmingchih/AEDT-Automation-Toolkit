@@ -20,7 +20,7 @@
       "run_sim": "run_sim.py"
     },
     "cct_tab": {
-      "run_cct": "cct.py"
+      "run_cct": "run_cct.py"
     }
   },
   "settings": {
