@@ -129,11 +129,6 @@ class SimulationTab(QWidget):
             )
             return
 
-        aedb_path = import_tab.layout_path_label.text()
-        if not os.path.isdir(aedb_path):
-            controller.log("Please open an .aedb project first.", "red")
-            return
-
         project_data = {"app_name": controller.app_name}
         if controller.project_file and os.path.exists(controller.project_file):
             with open(controller.project_file, "r") as handle:
@@ -152,7 +147,6 @@ class SimulationTab(QWidget):
 
         project_data.update(
             {
-                "aedb_path": aedb_path,
                 "edb_version": import_tab.edb_version_input.text(),
                 "cutout": {
                     "enabled": self.enable_cutout_checkbox.isChecked(),

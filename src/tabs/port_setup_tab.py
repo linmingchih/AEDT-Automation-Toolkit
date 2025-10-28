@@ -277,11 +277,6 @@ class PortSetupTab(QWidget):
             controller.log("No PCB data loaded.", "red")
             return
 
-        aedb_path = import_tab.layout_path_label.text()
-        if not os.path.isdir(aedb_path):
-            controller.log("Invalid AEDB path.", "red")
-            return
-
         project_data = {"app_name": controller.app_name}
         if controller.project_file and os.path.exists(controller.project_file):
             with open(controller.project_file, "r") as handle:
@@ -289,7 +284,6 @@ class PortSetupTab(QWidget):
 
         project_data.update(
             {
-                "aedb_path": aedb_path,
                 "reference_net": self.ref_net_combo.currentText(),
                 "controller_components": [
                     item.text().split(" ")[0]
@@ -436,7 +430,6 @@ class PortSetupTab(QWidget):
 
         simulation_tab.signal_nets_label.setText(", ".join(sorted(signal_nets)))
         simulation_tab.reference_net_label.setText(project_data["reference_net"])
-        controller.current_aedb_path = aedb_path
 
         try:
             project_data["cct_ports_ready"] = bool(project_data["ports"])
