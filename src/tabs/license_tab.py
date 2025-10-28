@@ -41,7 +41,7 @@ class LicenseTab(QWidget):
         server_layout = QHBoxLayout()
         server_label = QLabel("License server (ip@port):")
         self.server_input = QLineEdit()
-        self.server_input.setPlaceholderText("e.g., 127.0.0.1@1055")
+        self.server_input.setPlaceholderText("e.g., 1055@127.0.0.1")
         server_layout.addWidget(server_label)
         server_layout.addWidget(self.server_input)
         layout.addLayout(server_layout)
