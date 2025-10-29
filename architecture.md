@@ -1,16 +1,16 @@
-# SI Automation Flow – Architecture Overview
+# SI 自動化流程 – 架構總覽 (繁體中文)
 
-## 1. Top-Level Structure
-- **Entry point –** `src/main.py` boots a `QApplication` and shows `MainApplicationWindow` (`src/gui.py`).
-- **Application shell –** `MainApplicationWindow` manages:
-  - discovery of apps under `apps/` by inspecting each `<app_name>/config.json` and `<app_name>/controller.py`,
-  - a dynamic “Apps” menu for switching flows,
-  - a central `QTabWidget` populated by the selected app’s tabs (`tabs/…`),
-  - a shared log pane (`QTextEdit`) exposed to controllers as `log_window`.
-- **Apps –** each folder in `apps/` holds an app-specific `config.json` and `controller.py`. For example, `apps/si_app/controller.py` defines the signal-integrity automation flow.
-- **Shared UI tabs –** reusable PySide6 widgets in `src/tabs/` (e.g., `import_tab.py`, `port_setup_tab.py`). An app chooses which tabs to load via its config.
-- **Shared services –** `src/services/app_state_store.py` for lightweight persistence, `src/services/external_script_runner.py` for queued execution of helper scripts.
-- **Automation scripts –** Python command-line utilities in `src/scripts/` (e.g., `get_edb.py`, `set_edb.py`) that call PyAEDT / pyEDB tooling. They run outside the GUI and communicate via JSON files and stdout.
+## 1. 頂層結構
+- **進入點 (Entry point)** – `src/main.py` 啟動一個 `QApplication` 並顯示主視窗 `MainApplicationWindow` (`src/gui.py`)。
+- **應用程式外殼 (Application shell)** – `MainApplicationWindow` 負責管理：
+  - 透過掃描 `apps/` 目錄下的 `<app_name>/config.json` 來**自動發現**所有可用的 App。
+  - 一個動態的「應用程式」選單，用於切換不同的工作流程。
+  - 一個中央的 `QTabWidget`，根據所選 App 的設定檔來載入對應的 UI 頁籤 (Tabs)。
+  - 一個所有 App 共享的日誌面板 (`QTextEdit`)。
+- **應用程式 (Apps)** – `apps/` 下的每個資料夾都代表一個獨立的 App，包含其設定檔 `config.json` 和控制器 `controller.py`。
+- **共享 UI 頁籤 (Shared UI tabs)** – `src/tabs/` 中存放可重複使用的 PySide6 元件 (例如 `import_tab.py`, `port_setup_tab.py`)。App 透過其設定檔來決定要載入哪些頁籤。
+- **共享服務 (Shared services)** – `src/services/` 中提供共享的服務，例如用於輕量級狀態儲存的 `app_state_store.py` 和用於非同步執行腳本的 `external_script_runner.py`。
+- **自動化腳本 (Automation scripts)** – `src/scripts/` 中存放獨立的 Python 命令列工具，它們負責呼叫 PyAEDT / pyEDB 等函式庫來執行實際的模擬任務。
 
 ```
 SI Automation Flow/
@@ -21,144 +21,86 @@ SI Automation Flow/
 ├─ src/
 │  ├─ main.py
 │  ├─ gui.py
+│  ├─ controllers/
+│  │  └─ base_controller.py  <-- 所有控制器的基底類別
 │  ├─ tabs/
 │  │  ├─ import_tab.py
-│  │  ├─ port_setup_tab.py
-│  │  ├─ simulation_tab.py
-│  │  └─ result_tab.py
+│  │  └─ ...
 │  ├─ services/
 │  │  ├─ app_state_store.py
 │  │  └─ external_script_runner.py
 │  └─ scripts/
 │     ├─ get_edb.py
-│     ├─ set_edb.py
-│     ├─ set_sim.py
-│     ├─ run_sim.py
-│     ├─ get_loss.py
-│     └─ generate_report.py
-└─ images/, temp/, requirements.txt, ...
+│     └─ ...
+└─ temp/, requirements.txt, ...
 ```
 
-## 2. Application Shell (`src/gui.py`)
-- **Dynamic app loading.** `discover_apps()` scans `apps/`, reads each config, and creates menu actions that call `switch_app(app_name)`.
-- **Tab instantiation.** `switch_app` imports `apps.<app>.controller`, instantiates `AppController(app_name)`, gives it the shared log widget, and loads each tab listed in the app config. Tabs are created from `src/tabs` modules by deriving the class name from the module name (e.g., `port_setup_tab` → `PortSetupTab`).
-- **Controller wiring.** After all tabs are instantiated, `connect_signals(tabs)` (if present) lets the controller cache tab references and hook orchestrated behaviour.
-- **Lifecycle.** On close, `save_config()` is called on the active controller (if implemented), enabling app-defined persistence.
+## 2. 應用程式外殼 (`src/gui.py`)
+- **動態 App 載入**: `discover_apps()` 掃描 `apps/` 目錄，讀取每個 App 的 `config.json`，並在選單中建立對應的選項。
+- **頁籤實例化**: 當使用者透過選單切換 App 時，`switch_app()` 會匯入對應的控制器 (`apps.<app>.controller`)，將共享的日誌面板傳遞給它，並根據 App 設定檔中 `tabs` 列表的定義，實例化所有需要的 UI 頁籤。
+- **控制器連接**: 在所有頁籤都建立後，`connect_signals()` 會被呼叫，讓控制器有機會連接 UI 元件的訊號 (Signal)，例如按鈕點擊事件。
 
-## 3. SI App Controller (`apps/si_app/controller.py`)
-- **Responsibilities.**
-  - Maintains shared state for the flow: project JSON path, in-memory PCB data, references to tab widgets, app-wide services (`AppStateStore`, `ExternalScriptRunner`).
-  - Coordinates long-running tasks by delegating to `ExternalScriptRunner` and reacting to its signals (`started`, `finished`, `error`, `log_message`).
-  - Persists user choices (`save_config`) and restores them when the app loads (`load_config`).
-  - Provides utility helpers for tabs: centralised logging, button state management, and submission of background tasks (`_submit_task`).
-- **Signal binding.** After refactoring, `connect_signals` simply calls `bind_to_controller()` on each tab. Tabs now own their UI event handlers and call back into the controller for orchestration.
-- **Task lifecycle handling.**
-  - On success (`on_task_finished`): updates UI state (e.g., new AEDB path after import, repopulating Port Setup data, triggering next stage like running the report).
-  - On failure (`on_task_error`): restores button styles, hides result panels, and writes log messages.
-  - On log messages (`on_task_log_message`): streams script stdout/stderr into the shared log window and captures metadata such as generated report paths.
-- **Persistence.**
-  - `AppStateStore` keeps per-app JSON under `%APPDATA%\si-automation-flow\<app>\state.json` (Windows) or platform equivalents.
-  - `save_config` serialises simulation defaults (cutout, sweeps) and the last project file. It also patches the active project JSON with app metadata when available.
-  - `load_config` hydrates tabs with stored defaults and ensures the Result tab reflects the current project file.
+## 3. App 控制器 (`src/controllers/base_controller.py` & 子類別)
+此架構的核心是位於 `src/controllers/base_controller.py` 的 `BaseAppController`。**所有**在 `apps/` 目錄下的 App 控制器都必須繼承自這個基底類別。
 
-## 4. Tab Components (`src/tabs/*.py`)
-Each tab is a `QWidget` subclass that accepts the controller instance. Tabs encapsulate UI behaviour and interaction logic while using controller services for cross-cutting concerns.
+- **`BaseAppController` 的職責**:
+  - **提供共享服務**: 為所有子類別提供 `AppStateStore` (用於狀態儲存) 和 `ExternalScriptRunner` (用於任務執行) 的實例。
+  - **集中化任務提交**: 提供 `_submit_task` 方法作為所有後端腳本任務的統一入口。**此方法會自動設定當前專案的 `project.json` 路徑，並初始化 `project.log` 檔案**，確保日誌記錄的即時性與準確性。
+  - **集中化日誌記錄**: 提供 `log_message` 方法。此方法會**同時**將訊息發送到 GUI 的日誌面板和當前專案的 `project.log` 檔案中，實現了日誌的雙重寫入。
+  - **管理任務生命週期**: 透過連接 `ExternalScriptRunner` 的訊號 (`started`, `finished`, `error`)，提供可供子類別覆寫 (override) 的標準處理函式，如 `on_task_finished` 和 `on_task_error`。
 
-### 4.1 ImportTab (`src/tabs/import_tab.py`)
-- UI for selecting a layout source (.brd or .aedb), optional stack-up XML, and the target EDB version.
-- `bind_to_controller` wires button clicks and radio toggles to methods living on the tab itself.
-- `run_get_edb()` prepares an isolated session directory under `<project_root>/temp/<design>_<timestamp>/`, copies the selected layout/stackup, records the future project JSON path, and schedules `src/scripts/get_edb.py` through the controller.
-- On completion, `AppController` updates the layout label and triggers `PortSetupTab.load_pcb_data()` to refresh component data.
+- **App 控制器子類別 (例如 `apps/si_app/controller.py`) 的職責**:
+  - **實作特定邏輯**: 覆寫 `on_task_finished` 和 `on_task_error` 方法，根據完成或失敗的任務類型 (`task_type`)，執行特定的 UI 更新邏輯。例如，在 `get_edb` 任務完成後，呼叫 `port_setup_tab.load_pcb_data()` 來刷新埠設定頁籤的內容。
+  - **管理 App 狀態**: 實作 `load_config` 和 `save_config` 方法，使用 `AppStateStore` 服務來載入和儲存使用者在 UI 上的設定。
 
-### 4.2 PortSetupTab (`src/tabs/port_setup_tab.py`)
-- Manages component filtering, controller/DRAM selection, net discovery, and port definition.
-- Maintains a cached list of components (`self.all_components`) populated when `load_pcb_data()` parses the project JSON produced by `get_edb.py`.
-- `update_nets()` derives common nets between the selected controller and DRAM parts, populates single-ended and differential lists, and keeps the reference net combo in sync.
-- `apply_settings()` serialises the selected ports, nets, and reference into the project JSON, mirrors that info into the Simulation tab (signal/reference labels), and submits `set_edb.py` to generate SIwave ports.
-- Uses controller helpers to show progress (disabling Apply buttons, logging) and to enqueue scripts.
+## 4. UI 頁籤元件 (`src/tabs/*.py`)
+每個頁籤都是一個 `QWidget` 的子類別，它封裝了特定的 UI 和互動邏輯。
+- **職責**: 頁籤的主要職責是呈現 UI，並在使用者互動時 (例如點擊按鈕)，呼叫控制器提供的方法來觸發後續的業務邏輯。
+- **範例 (`ImportTab`)**: `run_get_edb()` 方法會準備好執行腳本所需的參數，然後呼叫 `controller._submit_task()` 將任務交由控制器統一處理，而不是自己直接執行 `QProcess`。
 
-### 4.3 SimulationTab (`src/tabs/simulation_tab.py`)
-- Hosts cutout controls, solver version, and a sweep table with add/remove operations.
-- `apply_simulation_settings()` validates prerequisites (e.g., Port Setup must define nets), writes sweep/cutout settings into the project JSON, and fires `set_sim.py`. Upon completion, the controller automatically schedules the full SIwave run (`run_sim.py`).
+## 5. 服務層 (`src/services/`)
+- **`AppStateStore`**: 提供一個基於 App 名稱的鍵值對儲存機制，用於持久化使用者設定。
+- **`ExternalScriptRunner`**: 維護一個任務佇列，管理 `QProcess` 的生命週期，並透過 Qt 訊號將腳本的執行狀態 (開始、結束、錯誤、日誌) 通知給控制器。這是確保 GUI 保持響應的關鍵。
 
-### 4.4 ResultTab (`src/tabs/result_tab.py`)
-- Handles post-processing: choosing an existing project JSON, invoking loss extraction (`get_loss.py`), and generating an HTML report (`generate_report.py`).
-- `run_post_processing()` resets the HTML group visibility, locks the Apply button, and triggers `run_get_loss()`; success cascades into `run_generate_report()`, after which the controller re-enables the UI and exposes the report path textbox plus “Open” button.
-- `open_report_in_browser()` opens the generated HTML using the default browser and logs the action.
+## 6. 自動化腳本 (`src/scripts/`)
+這些腳本是執行所有繁重工作的核心，它們被設計為完全獨立且無狀態的。
+- **黃金法則**: **讀取 `project.json` -> 執行工作 -> 寫回 `project.json`**。
+- **通訊**: 腳本透過兩種方式與主程式通訊：
+  1.  **資料層**: 讀取和修改 `project.json` 來傳遞結構化資料。
+  2.  **日誌層**: 透過 `print()` 將日誌訊息輸出到 `stdout`，`ExternalScriptRunner` 會捕捉這些訊息並透過訊號傳遞給控制器。
 
-## 5. Services Layer
+| 腳本 | 職責 | 輸出 |
+| --- | --- | --- |
+| `get_edb.py` | 導入 `.brd`/`.aedb`，提取元件/接腳/差分對等元數據 | 將 `pcb_data` 更新至 `project.json` |
+| `set_edb.py` | 為指定的元件和網路建立 SIwave 埠 | 將埠設定應用於 AEDB 專案 |
+| `set_sim.py` | 將 Cutout 和頻率掃描設定應用於 AEDB | 準備好可供求解的 AEDB |
+| `run_sim.py` | 啟動 SIwave/HFSS 3D Layout 分析，並匯出 Touchstone 檔案 | 將 `touchstone_path` 新增至 `project.json` |
+| `get_loss.py` | 使用 scikit-rf 後處理 S-參數，計算插入/回波損耗 | 將 `result` 區塊寫入 `project.json` |
+| `generate_report.py` | 產生包含互動式 Plotly 圖表的 HTML 報告 | 在專案目錄下生成 `report.html` |
 
-### 5.1 AppStateStore (`src/services/app_state_store.py`)
-- Provides a key/value persistence mechanism for each named app.
-- Encapsulates OS-specific paths (AppData / Application Support / `~/.config`).
-- Offers `load(app_name) -> dict` and `save(app_name, data)`; callers handle schema evolution by reading, mutating, and writing JSON dictionaries.
+## 7. 資料與控制流程 (以 SI App 為例)
+1.  **導入佈局 (`ImportTab` + `get_edb.py`)**:
+    - 使用者在 `ImportTab` 選擇一個 `.brd` 或 `.aedb` 檔案，點擊 "Apply"。
+    - `ImportTab` 呼叫 `controller._submit_task()`。
+    - `BaseAppController` 的 `_submit_task` 方法**立即設定 `project.json` 的路徑並初始化 `project.log`**。
+    - `ExternalScriptRunner` 執行 `get_edb.py` 腳本。
+    - 腳本將 `pcb_data` 寫入 `project.json`。
+    - `on_task_finished` 在 `si_app` 控制器中被觸發，它呼叫 `PortSetupTab.load_pcb_data()` 來刷新 UI。
+2.  **定義埠 (`PortSetupTab` + `set_edb.py`)**:
+    - 使用者在 `PortSetupTab` 中選擇元件和網路，點擊 "Apply"。
+    - `PortSetupTab` 將埠的設定寫入 `project.json`，然後呼叫 `controller._submit_task()` 來執行 `set_edb.py`。
+3.  **設定與執行模擬 (`SimulationTab` + `set_sim.py` + `run_sim.py`)**:
+    - 使用者在 `SimulationTab` 中設定參數，點擊 "Apply"。
+    - `SimulationTab` 將設定寫入 `project.json`，然後提交 `set_sim.py` 任務。
+    - 在 `set_sim.py` 成功完成後，`on_task_finished` 會被觸發，並**自動觸發**下一個 `run_sim.py` 任務。
+4.  **後處理與報告 (`ResultTab` + `get_loss.py` + `generate_report.py`)**:
+    - 流程與上述類似，每個步驟都透過讀寫 `project.json` 來傳遞資料。
 
-### 5.2 ExternalScriptRunner (`src/services/external_script_runner.py`)
-- Queues external commands (typically Python scripts) and keeps at most `max_concurrent` `QProcess` instances alive.
-- Emits Qt signals consumed by `AppController` to follow script progress.
-- Supports retries, cancellation, logging of stdout/stderr, and blocking vs. asynchronous execution models.
-- Centralises error handling so tabs do not manage `QProcess` lifecycles directly.
+## 8. 設定與持久化
+- **App 設定檔 (`apps/<app>/config.json`)**: 定義 App 的顯示名稱、描述以及需要載入的 `tabs` 順序。
+- **專案檔案 (`temp/<session>/project.json`)**: 整個自動化流程的**單一事實來源 (Single Source of Truth)**，在所有腳本之間共享。
+- **使用者狀態 (`%APPDATA%/si-automation-flow/<app>/state.json`)**: 儲存使用者在 UI 上的選擇，例如上次使用的 EDB 版本、頻率掃描設定等，以便下次啟動時恢復。
 
-## 6. Automation Scripts (`src/scripts/`)
-Scripts perform compute-heavy or licensed tasks using PyAEDT/pyEDB APIs, keeping the GUI responsive.
-
-| Script | Responsibility | Output |
-| -- | -- | -- |
-| `get_edb.py` | Imports `.brd`/`.aedb` into EDB, loads optional stackup XML, extracts component/pin/differential-pair metadata | Updates `project.json` with `pcb_data` |
-| `set_edb.py` | Builds SIwave pin groups and ports for selected components/nets | Applies ports in-place to the AEDB |
-| `set_sim.py` | Applies cutout settings and frequency sweeps to the AEDB | AEDB ready for SIwave solve |
-| `run_sim.py` | Launches SIwave/HFSS 3D Layout analysis, exports Touchstone | Appends `touchstone_path` to `project.json` |
-| `get_loss.py` | Post-processes S-parameters, computes insertion/return loss using scikit-rf & Circuit | Writes `result` section in `project.json` |
-| `generate_report.py` | Renders interactive Plotly HTML summarising loss metrics | `report.html` alongside the project JSON |
-
-Scripts communicate through the shared `project.json`, so each stage enriches the dataset for the next step. The controller metadata ties script runs back to initiating buttons for UI feedback.
-
-## 7. Data & Control Flow (SI App)
-1. **Import layout (ImportTab + `get_edb.py`).**
-   - User selects `.brd` or `.aedb`; the tab creates an isolated working folder, copies inputs, then spawns `get_edb.py`.
-   - Script extracts `pcb_data` (components, nets, diff pairs) and writes it into `project.json`.
-   - Controller loads the enriched JSON and calls `PortSetupTab.load_pcb_data()` to populate UI lists.
-2. **Define ports (PortSetupTab + `set_edb.py`).**
-   - User filters/selects components, checks nets/pairs. Tab builds `ports` array and writes simulation metadata, including signal/reference nets, into `project.json`.
-   - Tab updates Simulation tab labels to mirror the selected nets.
-   - `set_edb.py` consumes the JSON to add SIwave ports in the AEDB.
-3. **Configure simulation (SimulationTab + `set_sim.py` + `run_sim.py`).**
-   - User edits cutout and sweep definitions. Tab writes them into the JSON and triggers `set_sim.py`.
-   - On success, controller queues `run_sim.py`, which drives SIwave/HFSS to produce a Touchstone file and records its path.
-4. **Post-process & report (ResultTab + `get_loss.py` + `generate_report.py`).**
-   - User points to the project JSON (auto-filled after simulation). Tab runs `get_loss.py`, which calculates loss metrics based on the Touchstone file and updates the JSON.
-   - Controller initiates `generate_report.py`, producing `report.html` with Plotly plots. UI reveals the HTML section and allows the user to open it.
-5. **Logging & feedback.**
-   - Throughout, stdout/stderr from scripts is streamed into the shared log pane. Buttons are disabled/enabled automatically to avoid duplicate submissions.
-
-## 8. Configuration & Persistence
-- **App config (`apps/<app>/config.json`).** Declares display name, a description, tab order, and optional defaults. The `description` is a short string summarizing the app's purpose, which the main GUI displays in the information panel when the app is selected. Example (SI app):
-  ```json
-  {
-    "display_name": "SI Automation Flow",
-    "description": "A general-purpose Signal Integrity (SI) analysis flow.",
-    "tabs": [
-      "import_tab",
-      "port_setup_tab",
-      "simulation_tab",
-      "result_tab"
-    ]
-  }
-  ```
-- **Project file (`temp/<session>/project.json`).** Central data contract shared by all scripts; contains fields such as `app_name`, `aedb_path`, `pcb_data`, `ports`, `frequency_sweeps`, `touchstone_path`, and `result`.
-- **User state (`%APPDATA%/si-automation-flow/<app>/state.json`).** Stores last-used values for EDB version, cutout settings, sweep definitions, etc. `AppController` reads on load and writes on exit.
-
-## 9. Extensibility Guidelines
-- **Adding new apps.** Create `apps/<new_app>/config.json` + `controller.py`, reuse existing tabs or build new ones under `src/tabs/`. The GUI auto-discovers the app.
-- **Sharing tabs.** Tabs are designed to be generic; they rely solely on controller methods/services. To customise behaviour, extend the tab class or supply additional methods on the controller that the tab can call.
-- **Introducing new automation steps.** Implement a script under `src/scripts/`, then submit it via `ExternalScriptRunner` with metadata describing the initiating button and log messages. Ensure the script reads/writes the `project.json` or other agreed artefacts.
-- **Handling new data.** Expand the project JSON schema carefully; tabs and scripts should tolerate missing keys by providing defaults. Persist user preferences through `AppStateStore` when they need to survive app restarts.
-
-## 10. External Dependencies
-- **PySide6** – GUI toolkit for main window, tabs, and signals/slots.
-- **PyAEDT / pyEDB / SIwave APIs** – automate layout import, port setup, cutouts, and electromagnetic solves.
-- **scikit-rf** – post-process Touchstone files for loss metrics.
-- **Plotly (CDN)** – interactive HTML reporting.
-- **UUID / subprocess / QProcess** – used by `ExternalScriptRunner` to manage external jobs.
-
-The combination of a Qt front-end, a task runner, and script-based heavy lifting keeps the UI responsive while leveraging vendor toolchains for simulation. Tabs operate as independent, testable units that interact with the controller through well-defined hooks, enabling the project to scale to additional flows without altering the application shell.
+## 9. 擴展性指南
+- **新增 App**: 參照 `developer.md` 中的詳細指南。只需建立 `apps/<new_app>` 資料夾，並在其中包含 `config.json` 和 `controller.py` 即可。
+- **新增自動化步驟**: 在 `src/scripts/` 中建立新的腳本，確保它遵循讀寫 `project.json` 的原則，然後在對應的 Tab 或 Controller 中透過 `_submit_task` 呼叫它。
