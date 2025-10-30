@@ -428,6 +428,15 @@ class PortSetupTab(QWidget):
                         )
                         sequence += 1
 
+        drams_with_ports = {
+            port["component"]
+            for port in project_data["ports"]
+            if port["component_role"] == "dram"
+        }
+        project_data["dram_components"] = [
+            comp for comp in project_data["dram_components"] if comp in drams_with_ports
+        ]
+
         simulation_tab.signal_nets_label.setText(", ".join(sorted(signal_nets)))
         simulation_tab.reference_net_label.setText(project_data["reference_net"])
 
