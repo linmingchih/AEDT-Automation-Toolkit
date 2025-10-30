@@ -19,6 +19,7 @@ if info['cutout']['enabled']:
                expansion_size=float(info['cutout']['expansion_size']),
                
                )
+    edb.layout_validation.disjoint_nets()
     
 if info['solver'] == 'SIwave':
     setup = edb.create_siwave_syz_setup('mysetup')
