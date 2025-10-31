@@ -19,8 +19,10 @@ from PySide6.QtWidgets import (
     QHeaderView,
 )
 
+from .base import BaseTab
 
-class CctTab(QWidget):
+
+class CctTab(BaseTab):
     DEFAULT_SETTINGS = {
         "tx_vhigh": 0.8,
         "tx_rise_time": 30.0,
@@ -62,9 +64,8 @@ class CctTab(QWidget):
         "sparam_threshold_db": "Threshold (dB)",
     }
 
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+    def __init__(self, context):
+        super().__init__(context)
         self._field_widgets = {}
         self.setup_ui()
         self._apply_settings_to_inputs({})
@@ -313,8 +314,8 @@ class CctTab(QWidget):
             "button_reset_text": "Apply",
         }
 
-        controller._set_button_running(self.apply_button)
-        task_id = controller._submit_task(
+        controller.set_button_running(self.apply_button)
+        task_id = controller.submit_task(
             command,
             metadata=metadata,
             input_path=project_path,
@@ -324,7 +325,11 @@ class CctTab(QWidget):
         )
 
         if task_id is None:
-            controller._restore_button(self.apply_button, getattr(self, "apply_button_original_style", ""), "Apply")
+            controller.restore_button(
+                self.apply_button,
+                getattr(self, "apply_button_original_style", ""),
+                "Apply",
+            )
 
     # ------------------------------------------------------------------ #
     # Data loading helpers

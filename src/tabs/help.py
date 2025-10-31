@@ -8,9 +8,9 @@ import markdown
 class HelpTab(QWidget):
     """A widget that renders and displays a Markdown help file."""
 
-    def __init__(self, controller):
+    def __init__(self, context):
         super().__init__()
-        self.controller = controller
+        self.controller = context
         self.setup_ui()
 
     def setup_ui(self):

@@ -6,7 +6,6 @@ from datetime import datetime
 
 from PySide6.QtWidgets import (
     QApplication,
-    QWidget,
     QVBoxLayout,
     QGridLayout,
     QGroupBox,
@@ -19,11 +18,12 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from .base import BaseTab
 
-class ImportTab(QWidget):
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+
+class ImportTab(BaseTab):
+    def __init__(self, context):
+        super().__init__(context)
         self.setup_ui()
 
     def setup_ui(self):
@@ -101,6 +101,14 @@ class ImportTab(QWidget):
 
         main_layout.addStretch()
 
+        # Publish initial state snapshot for other tabs that rely on import
+        # metadata.
+        self.controller.update_state(
+            layout_type="brd",
+            layout_path="",
+            edb_version=self.edb_version_input.text(),
+        )
+
     def bind_to_controller(self):
         self.brd_radio.toggled.connect(self.on_layout_type_changed)
         self.aedb_radio.toggled.connect(self.on_layout_type_changed)
@@ -109,6 +117,9 @@ class ImportTab(QWidget):
         self.copy_stackup_button.clicked.connect(self.copy_imported_stackup_path)
         self.apply_import_button.clicked.connect(self.run_get_edb)
         self.apply_stackup_button.clicked.connect(self.run_modify_stackup)
+        self.edb_version_input.textChanged.connect(
+            lambda text: self.controller.update_state(edb_version=text)
+        )
 
     def copy_imported_stackup_path(self):
         path = self.imported_stackup_path.text()
@@ -122,6 +133,8 @@ class ImportTab(QWidget):
             self.layout_path_label.setText("No design loaded")
             self.imported_stackup_path.clear()
             self.new_stackup_path_input.clear()
+            layout_type = "brd" if self.brd_radio.isChecked() else "aedb"
+            self.controller.update_state(layout_type=layout_type, layout_path="")
 
     def open_layout(self):
         path = ""
@@ -134,12 +147,14 @@ class ImportTab(QWidget):
         if path:
             self.layout_path_label.setText(path)
             self.controller.load_config()
+            self.controller.update_state(layout_path=path)
 
     def browse_new_stackup(self):
         file_path, _ = QFileDialog.getOpenFileName(
             None, "Select New Stackup File", "", "XML files (*.xml)")
         if file_path:
             self.new_stackup_path_input.setText(file_path)
+            self.controller.update_state(stackup_candidate=file_path)
 
     def run_modify_stackup(self):
         controller = self.controller
@@ -154,7 +169,7 @@ class ImportTab(QWidget):
             return
 
         controller.log(f"Applying new stackup: {new_stackup_path}")
-        controller._set_button_running(self.apply_stackup_button)
+        controller.set_button_running(self.apply_stackup_button)
 
         action_spec = controller.get_action_spec("modify_xml", tab_name="import_tab")
         script_path = action_spec["script"]
@@ -170,7 +185,7 @@ class ImportTab(QWidget):
             "button_reset_text": "Apply",
         }
 
-        controller._submit_task(command, metadata=metadata)
+        controller.submit_task(command, metadata=metadata)
 
     def run_get_edb(self):
         controller = self.controller
@@ -221,13 +236,22 @@ class ImportTab(QWidget):
             with open(controller.project_file, "w") as f:
                 json.dump(project_data, f, indent=4)
             controller.log(f"Initial project file created: {controller.project_file}")
+            controller.update_state(
+                project_file=controller.project_file,
+                edb_version=edb_version,
+                stackup_path=stackup_path,
+            )
+            controller.publish_event(
+                "project.project_file_created",
+                {"project_file": controller.project_file},
+            )
 
         except Exception as exc:
             controller.log(f"Error preparing temp folder or project file: {exc}", "red")
             return
 
         controller.log(f"Opening layout: {layout_path}")
-        controller._set_button_running(self.apply_import_button)
+        controller.set_button_running(self.apply_import_button)
         controller.current_layout_path = layout_path
 
         action_spec = controller.get_action_spec("get_edb", tab_name="import_tab")
@@ -244,7 +268,7 @@ class ImportTab(QWidget):
             "button_reset_text": "Apply",
         }
 
-        controller._submit_task(
+        controller.submit_task(
             command,
             metadata=metadata,
             input_path=controller.project_file,

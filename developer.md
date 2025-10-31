@@ -8,6 +8,8 @@
 
 1.  **UI 層 (Tabs)**：位於 `src/tabs/`。這些是可重複使用的 PyQt 元件，像是「導入面板」、「埠設定面板」。它們只負責顯示資訊和接收使用者的點擊，是「啞的 (Dumb)」元件。
 
+    *   **TabContext 與 BaseTab**：所有新的 Tab 都必須繼承 `BaseTab`，並在建構子中接收 `TabContext`。這個 context 提供受控的 API（例如 `log`, `publish_event`, `update_state`, `request_project_update`），避免直接讀寫 controller 的屬性。當你需要跨 Tab 共用資料時，請透過 `update_state`/`get_tab_state` 或發佈事件 (`publish_event`) 來協調。事件名稱與所需的共享狀態必須在 PR 或文件中明確註記，方便其他應用複用時理解依賴關係。
+
 2.  **控制層 (Controller)**：位於 `apps/<你的App>/controller.py`。這是你的 App 的「大腦」。它負責：
     *   告訴主程式要載入哪些 UI Tabs。
     *   回應使用者在 UI 上的操作 (例如，點擊「Apply」按鈕)。

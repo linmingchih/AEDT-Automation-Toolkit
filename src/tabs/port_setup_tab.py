@@ -4,7 +4,6 @@ import re
 import sys
 
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -17,6 +16,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView
+
+from .base import BaseTab
 
 
 class NetListWidget(QListWidget):
@@ -43,12 +44,9 @@ class NetListWidget(QListWidget):
 
         for item in selected_items:
             item.setCheckState(target_state)
-
-
-class PortSetupTab(QWidget):
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+class PortSetupTab(BaseTab):
+    def __init__(self, context):
+        super().__init__(context)
         self.all_components = []
         self.setup_ui()
 
@@ -268,10 +266,7 @@ class PortSetupTab(QWidget):
 
     def apply_settings(self):
         controller = self.controller
-        import_tab = controller.tabs.get("import_tab")
-        simulation_tab = controller.tabs.get("simulation_tab")
-        if not import_tab or not simulation_tab:
-            return
+        import_state = controller.get_tab_state("import_tab")
 
         if not controller.pcb_data:
             controller.log("No PCB data loaded.", "red")
@@ -437,8 +432,19 @@ class PortSetupTab(QWidget):
             comp for comp in project_data["dram_components"] if comp in drams_with_ports
         ]
 
-        simulation_tab.signal_nets_label.setText(", ".join(sorted(signal_nets)))
-        simulation_tab.reference_net_label.setText(project_data["reference_net"])
+        signal_nets_sorted = sorted(signal_nets)
+        controller.publish_event(
+            "ports.updated",
+            {
+                "signal_nets": signal_nets_sorted,
+                "reference_net": project_data["reference_net"],
+            },
+        )
+        controller.update_state(
+            signal_nets=signal_nets_sorted,
+            reference_net=project_data["reference_net"],
+            ports_ready=bool(project_data["ports"]),
+        )
 
         try:
             project_data["cct_ports_ready"] = bool(project_data["ports"])
@@ -448,13 +454,13 @@ class PortSetupTab(QWidget):
                 f"Successfully saved to {controller.project_file}. Now applying to EDB..."
             )
 
-            controller._set_button_running(self.apply_button)
+            controller.set_button_running(self.apply_button)
             action_spec = controller.get_action_spec("set_edb", tab_name="port_setup_tab")
             script_path = action_spec["script"]
             python_executable = sys.executable
-            edb_version = import_tab.edb_version_input.text()
-            if not edb_version:
-                edb_version = project_data.get("edb_version", "")
+            edb_version = import_state.get("edb_version") or project_data.get(
+                "edb_version", ""
+            )
 
             command = [
                 python_executable,
@@ -473,7 +479,7 @@ class PortSetupTab(QWidget):
                 "button_reset_text": "Apply",
             }
 
-            controller._submit_task(
+            controller.submit_task(
                 command,
                 metadata=metadata,
                 input_path=controller.project_file,
@@ -484,7 +490,7 @@ class PortSetupTab(QWidget):
 
         except Exception as exc:
             controller.log(f"Error during apply: {exc}", "red")
-            controller._restore_button(
+            controller.restore_button(
                 self.apply_button,
                 getattr(self, "apply_button_original_style", ""),
                 "Apply",

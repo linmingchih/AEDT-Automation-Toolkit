@@ -7,6 +7,7 @@ import sys
 from PySide6.QtCore import QObject
 from PySide6.QtGui import QColor
 
+from src.controllers.tab_context import TabContext
 from src.services import AppStateStore, ExternalScriptRunner
 
 
@@ -40,6 +41,17 @@ class BaseAppController(QObject):
         self.current_layout_path = None
         self.current_aedb_path = None
 
+        # Shared state and event plumbing used by TabContext.
+        self._shared_state = {}
+        self._tab_states = {}
+        self._tab_contexts = {}
+        self._tab_event_permissions = self.configure_tab_events() or {}
+        self._controller_event_handlers = {}
+        self._tab_event_subscribers = {}
+
+        # Built-in events exposed to tabs.
+        self.register_event_handler("project_update", self._handle_project_update_event)
+
     def set_project_log_path(self, project_json_path):
         """Sets the path for the project-specific log file."""
         if project_json_path:
@@ -58,6 +70,94 @@ class BaseAppController(QObject):
             binder = getattr(tab, "bind_to_controller", None)
             if callable(binder):
                 binder()
+
+    # ------------------------------------------------------------------ #
+    # Tab context lifecycle
+    # ------------------------------------------------------------------ #
+    def configure_tab_events(self):
+        """Return a mapping of tab name -> iterable of allowed event names."""
+
+        return {}
+
+    def create_tab_context(self, tab_name):
+        allowed = self._tab_event_permissions.get(tab_name)
+        context = TabContext(self, tab_name, allowed_events=allowed)
+        self._tab_contexts[tab_name] = context
+        return context
+
+    def get_tab_context(self, tab_name):
+        return self._tab_contexts.get(tab_name)
+
+    def register_event_handler(self, event_name, handler):
+        handlers = self._controller_event_handlers.setdefault(event_name, [])
+        if handler not in handlers:
+            handlers.append(handler)
+
+    def register_tab_listener(self, tab_name, event_name, callback):
+        subscribers = self._tab_event_subscribers.setdefault(event_name, [])
+        subscribers.append((tab_name, callback))
+
+    def dispatch_tab_event(self, source_tab, event_name, payload=None):
+        allowed = self._tab_event_permissions.get(source_tab)
+        if allowed is not None and allowed and event_name not in allowed:
+            raise ValueError(
+                f"Tab '{source_tab}' attempted to publish unauthorized event '{event_name}'"
+            )
+
+        payload = payload or {}
+
+        for handler in self._controller_event_handlers.get(event_name, []):
+            handler(source_tab, payload)
+
+        for target_tab, callback in self._tab_event_subscribers.get(event_name, []):
+            try:
+                callback(source_tab, payload)
+            except Exception as exc:
+                self.log(f"Error handling event '{event_name}' in {target_tab}: {exc}", "red")
+
+    # ------------------------------------------------------------------ #
+    # Shared state utilities
+    # ------------------------------------------------------------------ #
+    def get_shared_state(self, key, default=None):
+        return self._shared_state.get(key, default)
+
+    def set_shared_state(self, key, value):
+        self._shared_state[key] = value
+
+    def update_tab_state(self, tab_name, data):
+        state = self._tab_states.setdefault(tab_name, {})
+        state.update(data)
+
+    def get_tab_state(self, tab_name):
+        return self._tab_states.get(tab_name, {})
+
+    # ------------------------------------------------------------------ #
+    # Project coordination
+    # ------------------------------------------------------------------ #
+    def _handle_project_update_event(self, source_tab, payload):
+        update_type = payload.get("type")
+        data = {k: v for k, v in payload.items() if k != "type"}
+        self.handle_project_update(source_tab, update_type, **data)
+
+    def handle_project_update(self, source_tab, update_type, **payload):
+        if update_type == "project_file":
+            path = payload.get("path")
+            self.project_file = path
+            if path:
+                self.set_shared_state("project_file", path)
+        elif update_type == "current_layout_path":
+            self.current_layout_path = payload.get("path")
+        elif update_type == "current_aedb_path":
+            self.current_aedb_path = payload.get("path")
+        elif update_type == "report_path":
+            self.report_path = payload.get("path")
+        elif update_type == "pcb_data":
+            self.pcb_data = payload.get("data")
+        else:
+            handler = getattr(self, "on_project_update", None)
+            if callable(handler):
+                return handler(source_tab, update_type, **payload)
+        return None
 
     def log_message(self, message, color=None):
         """Log a message to the GUI's log window and the project log file."""

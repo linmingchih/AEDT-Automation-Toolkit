@@ -9,6 +9,16 @@ class AppController(BaseAppController):
     def __init__(self, app_name):
         super().__init__(app_name)
 
+    def configure_tab_events(self):
+        return {
+            "import_tab": {"project.project_file_created"},
+            "port_setup_tab": {"ports.updated"},
+            "simulation_tab": set(),
+            "result_tab": set(),
+            "cct_tab": set(),
+            "table": set(),
+        }
+
     def _refresh_cct_tabs(self, project_path=None):
         path = project_path or self.project_file
 

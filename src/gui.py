@@ -177,7 +177,8 @@ class MainApplicationWindow(QMainWindow):
                         class_name = "".join(word.capitalize() for word in tab_name.split('_'))
                         tab_class = getattr(tab_module, class_name)
                         
-                        tab_instance = tab_class(self.current_controller)
+                        tab_context = self.current_controller.create_tab_context(tab_name)
+                        tab_instance = tab_class(tab_context)
                         self.tabs.addTab(tab_instance, display_title)
                         loaded_tabs[tab_name] = tab_instance
                 

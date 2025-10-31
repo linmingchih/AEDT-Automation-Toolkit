@@ -18,15 +18,19 @@ from PySide6.QtWidgets import (
     QHeaderView,
 )
 
+from .base import BaseTab
 
-class Table(QWidget):
+
+class Table(BaseTab):
     """Display the contents of the generated CCT CSV report."""
 
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+    def __init__(self, context):
+        super().__init__(context)
         self._current_project = None
         self.setup_ui()
+        self.controller.subscribe(
+            "project.project_file_created", self.on_project_created
+        )
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -157,3 +161,9 @@ class Table(QWidget):
     def _log(self, message, color=None):
         if hasattr(self.controller, "log"):
             self.controller.log(message, color)
+
+    def on_project_created(self, source_tab, payload):
+        project_path = payload.get("project_file")
+        if project_path:
+            self._current_project = project_path
+            self.load_from_project(project_path)
