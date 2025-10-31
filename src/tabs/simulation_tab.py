@@ -2,29 +2,31 @@ import json
 import os
 import sys
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
+    QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QComboBox,
-    QPushButton,
     QLineEdit,
-    QGroupBox,
-    QCheckBox,
-    QGridLayout,
+    QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QVBoxLayout,
     QHeaderView,
 )
-from PySide6.QtCore import Qt
+
+from .base import BaseTab
 
 
-class SimulationTab(QWidget):
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+class SimulationTab(BaseTab):
+    def __init__(self, context):
+        super().__init__(context)
         self.setup_ui()
+        self.controller.subscribe("ports.updated", self.on_ports_updated)
+        self._sync_from_state()
 
     def setup_ui(self):
         simulation_layout = QVBoxLayout(self)
@@ -59,13 +61,15 @@ class SimulationTab(QWidget):
         sweeps_layout = QVBoxLayout(sweeps_group)
         self.sweeps_table = QTableWidget()
         self.sweeps_table.setColumnCount(4)
-        self.sweeps_table.setHorizontalHeaderLabels(["Sweep Type", "Start", "Stop", "Step/Count"])
+        self.sweeps_table.setHorizontalHeaderLabels(
+            ["Sweep Type", "Start", "Stop", "Step/Count"]
+        )
         self.sweeps_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.add_sweep(["linear count", "0", "1kHz", "3"])
         self.add_sweep(["log scale", "1kHz", "0.1GHz", "10"])
         self.add_sweep(["linear scale", "0.1GHz", "10GHz", "0.1GHz"])
         sweeps_layout.addWidget(self.sweeps_table)
-        
+
         sweep_buttons_layout = QHBoxLayout()
         add_sweep_button = QPushButton("Add Sweep")
         add_sweep_button.clicked.connect(lambda: self.add_sweep())
@@ -83,6 +87,11 @@ class SimulationTab(QWidget):
         self.apply_simulation_button_original_style = primary_style
         simulation_layout.addWidget(self.apply_simulation_button, alignment=Qt.AlignRight)
         simulation_layout.addStretch()
+
+        self.controller.update_state(
+            signal_nets=[],
+            reference_net="",
+        )
 
     def add_sweep(self, sweep_data=None):
         if sweep_data is None:
@@ -117,9 +126,7 @@ class SimulationTab(QWidget):
 
     def apply_simulation_settings(self):
         controller = self.controller
-        import_tab = controller.tabs.get("import_tab")
-        if not import_tab:
-            return
+        import_state = controller.get_tab_state("import_tab")
 
         signal_nets_text = self.signal_nets_label.text()
         if not signal_nets_text or signal_nets_text == "(not set)":
@@ -147,7 +154,7 @@ class SimulationTab(QWidget):
 
         project_data.update(
             {
-                "edb_version": import_tab.edb_version_input.text(),
+                "edb_version": import_state.get("edb_version", ""),
                 "cutout": {
                     "enabled": self.enable_cutout_checkbox.isChecked(),
                     "expansion_size": self.expansion_size_input.text(),
@@ -168,7 +175,7 @@ class SimulationTab(QWidget):
             )
 
             controller.log("Applying simulation settings to EDB...")
-            controller._set_button_running(self.apply_simulation_button)
+            controller.set_button_running(self.apply_simulation_button)
             action_spec = controller.get_action_spec("set_sim", tab_name="simulation_tab")
             script_path = action_spec["script"]
             python_executable = sys.executable
@@ -186,7 +193,7 @@ class SimulationTab(QWidget):
                 "button_reset_text": "Apply",
             }
 
-            controller._submit_task(
+            controller.submit_task(
                 command,
                 metadata=metadata,
                 input_path=controller.project_file,
@@ -197,8 +204,28 @@ class SimulationTab(QWidget):
 
         except Exception as exc:
             controller.log(f"Error applying simulation settings: {exc}", color="red")
-            controller._restore_button(
+            controller.restore_button(
                 self.apply_simulation_button,
                 getattr(self, "apply_simulation_button_original_style", ""),
                 "Apply",
             )
+
+    def _sync_from_state(self):
+        state = self.controller.get_state()
+        nets = state.get("signal_nets")
+        if nets:
+            self.signal_nets_label.setText(", ".join(nets))
+        reference = state.get("reference_net")
+        if reference:
+            self.reference_net_label.setText(reference)
+
+    def on_ports_updated(self, source_tab, payload):
+        nets = payload.get("signal_nets") or []
+        reference = payload.get("reference_net") or "(not set)"
+        if nets:
+            self.signal_nets_label.setText(", ".join(nets))
+        else:
+            self.signal_nets_label.setText("(not set)")
+        self.reference_net_label.setText(reference)
+        self.controller.update_state(signal_nets=nets, reference_net=reference)
+

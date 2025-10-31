@@ -17,9 +17,9 @@ from PySide6.QtWidgets import (
 class LicenseTab(QWidget):
     """A widget to check license server status."""
 
-    def __init__(self, controller):
+    def __init__(self, context):
         super().__init__()
-        self.controller = controller
+        self.controller = context
         self.setup_ui()
 
     def setup_ui(self):

@@ -3,7 +3,6 @@ import sys
 import webbrowser
 
 from PySide6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -14,11 +13,12 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from .base import BaseTab
 
-class ResultTab(QWidget):
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
+
+class ResultTab(BaseTab):
+    def __init__(self, context):
+        super().__init__(context)
         self.setup_ui()
 
     def setup_ui(self):
@@ -77,7 +77,7 @@ class ResultTab(QWidget):
 
         controller.project_file = project_file
         self.html_group.setVisible(False)
-        controller._set_button_running(self.apply_result_button)
+        controller.set_button_running(self.apply_result_button)
         self.run_get_loss()
 
     def open_report_in_browser(self):
@@ -95,7 +95,7 @@ class ResultTab(QWidget):
         controller = self.controller
         if not controller.project_file or not os.path.exists(controller.project_file):
             controller.log("Project file not set. Cannot retrieve loss data.", "red")
-            controller._restore_button(
+            controller.restore_button(
                 self.apply_result_button,
                 getattr(self, "apply_result_button_original_style", ""),
                 "Apply",
@@ -116,7 +116,7 @@ class ResultTab(QWidget):
         if action_spec.get("args"):
             command.extend(action_spec["args"])
 
-        controller._submit_task(
+        controller.submit_task(
             command,
             metadata=metadata,
             input_path=controller.project_file,
@@ -129,7 +129,7 @@ class ResultTab(QWidget):
         controller = self.controller
         if not controller.project_file or not os.path.exists(controller.project_file):
             controller.log("Project file not set. Cannot generate report.", "red")
-            controller._restore_button(
+            controller.restore_button(
                 self.apply_result_button,
                 getattr(self, "apply_result_button_original_style", ""),
                 "Apply",
@@ -150,7 +150,7 @@ class ResultTab(QWidget):
         if action_spec.get("args"):
             command.extend(action_spec["args"])
 
-        controller._submit_task(
+        controller.submit_task(
             command,
             metadata=metadata,
             input_path=controller.project_file,
