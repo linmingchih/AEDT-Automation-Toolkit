@@ -40,6 +40,8 @@ class BaseAppController(QObject):
         self.task_contexts = {}
         self.current_layout_path = None
         self.current_aedb_path = None
+        self._task_finished_handlers = {}
+        self._task_error_handlers = {}
 
         # Shared state and event plumbing used by TabContext.
         self._shared_state = {}
@@ -204,6 +206,27 @@ class BaseAppController(QObject):
         else:
             button.setStyleSheet("")
 
+    def _reset_task_button(self, context):
+        if not context:
+            return
+        self._restore_button(
+            context.get("button"),
+            context.get("button_style"),
+            context.get("button_reset_text", "Apply"),
+        )
+
+    def register_task_handlers(self, *, finished=None, errored=None):
+        finished = finished or {}
+        errored = errored or {}
+
+        for task_type, handler in finished.items():
+            if callable(handler):
+                self._task_finished_handlers[task_type] = handler
+
+        for task_type, handler in errored.items():
+            if callable(handler):
+                self._task_error_handlers[task_type] = handler
+
     def _submit_task(
         self,
         command,
@@ -328,15 +351,27 @@ class BaseAppController(QObject):
     def on_task_finished(self, task_id, exit_code, metadata):
         """Handle the successful completion of an external task."""
         context = self.task_contexts.pop(task_id, metadata or {})
-        self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-        self.log(f"Task '{context.get('type')}' finished.")
+        task_type = context.get("type")
+        handler = self._task_finished_handlers.get(task_type)
+
+        if handler:
+            handler(task_id, exit_code, context)
+        else:
+            self._reset_task_button(context)
+            self.log(f"Task '{task_type}' finished.")
 
     def on_task_error(self, task_id, exit_code, message, metadata):
         """Handle a failed external task."""
         context = self.task_contexts.pop(task_id, metadata or {})
         log_message = message or f"Task failed with exit code {exit_code}."
-        self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-        self.log(f"Task '{context.get('type')}' failed: {log_message}", "red")
+        task_type = context.get("type")
+        handler = self._task_error_handlers.get(task_type)
+
+        if handler:
+            handler(task_id, exit_code, log_message, context)
+        else:
+            self._reset_task_button(context)
+            self.log(f"Task '{task_type}' failed: {log_message}", "red")
 
     def on_task_log_message(self, task_id, level, message, metadata):
         """Log messages from an external task."""

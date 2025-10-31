@@ -84,35 +84,43 @@ from src.controllers.base_controller import BaseAppController
 class AppController(BaseAppController):
     def __init__(self, app_name):
         super().__init__(app_name)
+        # Register callbacks for each automation task your app submits.
+        self.register_task_handlers(
+            finished={
+                "get_edb": self._handle_get_edb_finished,
+                "run_impedance_script": self._handle_run_impedance_finished,
+            },
+            errored={
+                "get_edb": self._handle_get_edb_error,
+                "run_impedance_script": self._handle_run_impedance_error,
+            },
+        )
 
     def get_config_path(self):
         # 讓控制器能找到自己的設定檔
         return os.path.join(os.path.dirname(__file__), "config.json")
 
-    def on_task_finished(self, task_id, exit_code, metadata):
-        # 處理來自後端腳本的完成訊號
-        super().on_task_finished(task_id, exit_code, metadata) # 可選，用於恢復按鈕狀態
-        
-        task_type = metadata.get("type")
+    def _handle_get_edb_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("Layout imported successfully.")
+        port_setup_tab = self.tabs.get("port_setup_tab")
+        if port_setup_tab:
+            port_setup_tab.load_pcb_data()
 
-        if task_type == "get_edb":
-            # get_edb 是通用的，處理邏輯可以從 si_app 複製過來
-            self.log("Layout imported successfully.")
-            port_setup_tab = self.tabs.get("port_setup_tab") # 如果你用了這個 tab
-            if port_setup_tab:
-                port_setup_tab.load_pcb_data()
-        
-        elif task_type == "run_impedance_script":
-            # 這是我們這個 App 特有的任務
-            self.log("Impedance analysis finished.")
-            # 在這裡可以觸發下一步，例如自動跳到 Result Tab
-            result_tab = self.tabs.get("result_tab")
-            if result_tab:
-                result_tab.project_path_input.setText(self.project_file)
+    def _handle_get_edb_error(self, task_id, exit_code, message, context):
+        self._reset_task_button(context)
+        self.log(f"Failed to import layout: {message}", "red")
 
-    def on_task_error(self, task_id, exit_code, message, metadata):
-        # 處理錯誤，可以從 si_app 複製過來並修改
-        pass
+    def _handle_run_impedance_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("Impedance analysis finished.")
+        result_tab = self.tabs.get("result_tab")
+        if result_tab:
+            result_tab.project_path_input.setText(self.project_file)
+
+    def _handle_run_impedance_error(self, task_id, exit_code, message, context):
+        self._reset_task_button(context)
+        self.log(f"Impedance analysis failed: {message}", "red")
 
     def load_config(self):
         # 載入 App 狀態，例如使用者上次輸入的參數
