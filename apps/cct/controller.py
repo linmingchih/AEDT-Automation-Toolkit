@@ -12,6 +12,27 @@ class AppController(BaseAppController):
 
     def __init__(self, app_name):
         super().__init__(app_name)
+        self.register_task_handlers(
+            finished={
+                "get_edb": self._handle_get_edb_finished,
+                "set_edb": self._handle_set_edb_finished,
+                "set_sim": self._handle_set_sim_finished,
+                "run_sim": self._handle_run_sim_finished,
+                "run_cct": self._handle_run_cct_finished,
+                "modify_xml": self._handle_modify_xml_finished,
+                "get_loss": self._handle_get_loss_finished,
+                "generate_report": self._handle_generate_report_finished,
+            },
+            errored={
+                "get_edb": self._handle_get_edb_error,
+                "set_edb": self._handle_set_edb_error,
+                "set_sim": self._handle_set_sim_error,
+                "run_sim": self._handle_run_sim_error,
+                "run_cct": self._handle_run_cct_error,
+                "get_loss": self._handle_get_loss_error,
+                "generate_report": self._handle_generate_report_error,
+            },
+        )
 
     def get_config_path(self):
         return os.path.join(os.path.dirname(__file__), "config.json")
@@ -130,128 +151,115 @@ class AppController(BaseAppController):
             except Exception as exc:
                 self.log(f"Could not refresh {tab.__class__.__name__}: {exc}", "orange")
 
-    def on_task_finished(self, task_id, exit_code, metadata):
-        context = self.task_contexts.pop(task_id, metadata or {})
-        task_type = context.get("type")
+    def _handle_get_edb_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("Get EDB process finished.")
+        layout_path = self.current_layout_path or ""
+        import_tab = self.tabs.get("import_tab")
+        if layout_path.lower().endswith(".brd") and import_tab:
+            new_aedb_path = os.path.splitext(layout_path)[0] + ".aedb"
+            import_tab.layout_path_label.setText(new_aedb_path)
+            self.log(f"Design path has been updated to: {new_aedb_path}")
 
-        if task_type == "get_edb":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Get EDB process finished.")
-            layout_path = self.current_layout_path or ""
-            import_tab = self.tabs.get("import_tab")
-            if layout_path.lower().endswith(".brd") and import_tab:
-                new_aedb_path = os.path.splitext(layout_path)[0] + ".aedb"
-                import_tab.layout_path_label.setText(new_aedb_path)
-                self.log(f"Design path has been updated to: {new_aedb_path}")
+        if import_tab and self.project_file and os.path.exists(self.project_file):
+            try:
+                with open(self.project_file, "r") as f:
+                    project_data = json.load(f)
+                imported_xml = project_data.get("xml_path", "")
+                import_tab.imported_stackup_path.setText(imported_xml)
+                self.log(f"Imported stackup path loaded: {imported_xml}")
+            except (IOError, json.JSONDecodeError) as e:
+                self.log(f"Error reading project file to get imported stackup: {e}", "red")
 
-            # Populate the imported stackup path from the project file
-            if import_tab and self.project_file and os.path.exists(self.project_file):
-                try:
-                    with open(self.project_file, "r") as f:
-                        project_data = json.load(f)
-                    imported_xml = project_data.get("xml_path", "")
-                    import_tab.imported_stackup_path.setText(imported_xml)
-                    self.log(f"Imported stackup path loaded: {imported_xml}")
-                except (IOError, json.JSONDecodeError) as e:
-                    self.log(f"Error reading project file to get imported stackup: {e}", "red")
+        self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
+        port_setup_tab = self.tabs.get("port_setup_tab")
+        if port_setup_tab:
+            port_setup_tab.load_pcb_data()
+        self._refresh_cct_tabs()
 
-            self.log(f"Successfully updated PCB data in {os.path.basename(self.project_file)}")
-            port_setup_tab = self.tabs.get("port_setup_tab")
-            if port_setup_tab:
-                port_setup_tab.load_pcb_data()
-            self._refresh_cct_tabs()
+    def _handle_set_edb_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("Set EDB process finished.")
+        if self.current_aedb_path:
+            new_aedb_path = self.current_aedb_path.replace(".aedb", "_applied.aedb")
+            self.log(f"Successfully created {new_aedb_path}")
+        self._refresh_cct_tabs()
 
-        elif task_type == "set_edb":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Set EDB process finished.")
-            if self.current_aedb_path:
-                new_aedb_path = self.current_aedb_path.replace(".aedb", "_applied.aedb")
-                self.log(f"Successfully created {new_aedb_path}")
-            self._refresh_cct_tabs()
+    def _handle_set_sim_finished(self, task_id, exit_code, context):
+        self.log("Set simulation process finished.")
+        self.log("Successfully applied simulation settings. Now running simulation...")
+        self._refresh_cct_tabs()
+        self._queue_simulation_run(context)
 
-        elif task_type == "set_sim":
-            self.log("Set simulation process finished.")
-            self.log("Successfully applied simulation settings. Now running simulation...")
-            self._refresh_cct_tabs()
-            self._queue_simulation_run(context)
+    def _handle_run_sim_finished(self, task_id, exit_code, context):
+        result_tab = self.tabs.get("result_tab")
+        self._reset_task_button(context)
+        self.log("Simulation process finished.")
+        if result_tab:
+            result_tab.project_path_input.setText(self.project_file)
+        self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
+        self._refresh_cct_tabs()
 
-        elif task_type == "run_sim":
-            simulation_tab = self.tabs.get("simulation_tab")
-            result_tab = self.tabs.get("result_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Simulation process finished.")
-            if result_tab:
-                result_tab.project_path_input.setText(self.project_file)
-            self.log("Successfully ran simulation. Project file path has been set in the Result tab.")
-            self._refresh_cct_tabs()
+    def _handle_run_cct_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("CCT calculation finished.")
+        self._refresh_cct_tabs()
 
-        elif task_type == "run_cct":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("CCT calculation finished.")
-            self._refresh_cct_tabs()
+    def _handle_modify_xml_finished(self, task_id, exit_code, context):
+        self._reset_task_button(context)
+        self.log("Stackup modification process finished.")
 
-        elif task_type == "modify_xml":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Stackup modification process finished.")
+    def _handle_get_loss_finished(self, task_id, exit_code, context):
+        self.log("Successfully got loss data. Generating HTML report...")
+        result_tab = self.tabs.get("result_tab")
+        if result_tab:
+            result_tab.run_generate_report()
 
-        elif task_type == "get_loss":
-            self.log("Successfully got loss data. Generating HTML report...")
-            result_tab = self.tabs.get("result_tab")
-            if result_tab:
-                result_tab.run_generate_report()
+    def _handle_generate_report_finished(self, task_id, exit_code, context):
+        result_tab = self.tabs.get("result_tab")
+        self._reset_task_button(context)
+        self.log("HTML report generation finished.")
+        if result_tab and self.report_path:
+            result_tab.html_group.setVisible(True)
 
-        elif task_type == "generate_report":
-            result_tab = self.tabs.get("result_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("HTML report generation finished.")
-            if result_tab and self.report_path:
-                result_tab.html_group.setVisible(True)
+    def _handle_get_edb_error(self, task_id, exit_code, log_message, context):
+        self._reset_task_button(context)
+        self.log("Get EDB process finished.")
+        self.log(f"Get EDB process failed with exit code {exit_code}. {log_message}", "red")
 
-    def on_task_error(self, task_id, exit_code, message, metadata):
-        context = self.task_contexts.pop(task_id, metadata or {})
-        task_type = context.get("type")
-        log_message = message or f"Task failed with exit code {exit_code}."
+    def _handle_set_edb_error(self, task_id, exit_code, log_message, context):
+        self._reset_task_button(context)
+        self.log("Set EDB process finished.")
+        self.log(f"Set EDB process failed with exit code {exit_code}. {log_message}", "red")
 
-        if task_type == "get_edb":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Get EDB process finished.")
-            self.log(f"Get EDB process failed with exit code {exit_code}. {log_message}", "red")
+    def _handle_set_sim_error(self, task_id, exit_code, log_message, context):
+        self._reset_task_button(context)
+        self.log("Set simulation process finished.")
+        self.log(f"Set simulation process failed with exit code {exit_code}. {log_message}", "red")
 
-        elif task_type == "set_edb":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Set EDB process finished.")
-            self.log(f"Set EDB process failed with exit code {exit_code}. {log_message}", "red")
+    def _handle_run_sim_error(self, task_id, exit_code, log_message, context):
+        self._reset_task_button(context)
+        self.log("Simulation process finished.")
+        self.log(f"Run simulation process failed with exit code {exit_code}. {log_message}", "red")
 
-        elif task_type == "set_sim":
-            simulation_tab = self.tabs.get("simulation_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Set simulation process finished.")
-            self.log(f"Set simulation process failed with exit code {exit_code}. {log_message}", "red")
+    def _handle_run_cct_error(self, task_id, exit_code, log_message, context):
+        self._reset_task_button(context)
+        self.log("CCT calculation finished.")
+        self.log(f"CCT calculation failed with exit code {exit_code}. {log_message}", "red")
 
-        elif task_type == "run_sim":
-            simulation_tab = self.tabs.get("simulation_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("Simulation process finished.")
-            self.log(f"Run simulation process failed with exit code {exit_code}. {log_message}", "red")
+    def _handle_get_loss_error(self, task_id, exit_code, log_message, context):
+        result_tab = self.tabs.get("result_tab")
+        self._reset_task_button(context)
+        if result_tab:
+            result_tab.html_group.setVisible(False)
+        self.log(f"Get loss process failed with exit code {exit_code}. {log_message}", "red")
 
-        elif task_type == "run_cct":
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            self.log("CCT calculation finished.")
-            self.log(f"CCT calculation failed with exit code {exit_code}. {log_message}", "red")
-
-        elif task_type == "get_loss":
-            result_tab = self.tabs.get("result_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            if result_tab:
-                result_tab.html_group.setVisible(False)
-            self.log(f"Get loss process failed with exit code {exit_code}. {log_message}", "red")
-
-        elif task_type == "generate_report":
-            result_tab = self.tabs.get("result_tab")
-            self._restore_button(context.get("button"), context.get("button_style"), context.get("button_reset_text", "Apply"))
-            if result_tab:
-                result_tab.html_group.setVisible(False)
-            self.log(f"HTML report generation failed with exit code {exit_code}. {log_message}", "red")
+    def _handle_generate_report_error(self, task_id, exit_code, log_message, context):
+        result_tab = self.tabs.get("result_tab")
+        self._reset_task_button(context)
+        if result_tab:
+            result_tab.html_group.setVisible(False)
+        self.log(f"HTML report generation failed with exit code {exit_code}. {log_message}", "red")
 
     def _queue_simulation_run(self, context):
         simulation_tab = self.tabs.get("simulation_tab")
