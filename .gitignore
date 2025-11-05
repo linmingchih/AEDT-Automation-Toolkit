@@ -8,3 +8,5 @@ __pycache__/
 *$py.class
 /apps/si_app/__pycache__
 batch.log
+/tests
+*.pyc
